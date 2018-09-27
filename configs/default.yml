@@ -48,34 +48,49 @@ remote:
   fetch: no
   # always fetch each repositories (it cannot be overridden)
   fetch_always: no
+  # location aliases for remote repositories
+  aliases:
+    bos: https://github.com/braiins
+    openwrt_feed: git://git.openwrt.org/feed
+  # default location for remote repositories
+  location: bos
   # default branch for repositories
   branch: master
   # list of remote repositories
   repos:
     lede:
-      uri: https://github.com/braiins/lede.git
+      project: lede.git
     lede-packages:
-      uri: git://git.openwrt.org/feed/packages.git
+      location: openwrt_feed
+      project: packages.git
       branch: cd5c448758f30868770b9ebf8b656c1a4211a240
     lede-routing:
-      uri: git://git.openwrt.org/feed/routing.git
+      location: openwrt_feed
+      project: routing.git
       branch: d11075cd40a88602bf4ba2b275f72100ddcb4767
     lede-telephony:
-      uri: git://git.openwrt.org/feed/telephony.git
+      location: openwrt_feed
+      project: telephony.git
       branch: ac6415e61f147a6892fd2785337aec93ddc68fa9
     luci:
-      uri: https://github.com/braiins/luci.git
+      project: luci.git
     miner-feeds:
-      uri: https://github.com/braiins/braiins-os-feeds.git
+      project: braiins-os-feeds.git
     platform:
-      uri: https://github.com/braiins/{target}-io-bin.git
+      match:
+        zynq:
+          project: zynq-io-bin.git
     u-boot:
-      uri: https://github.com/braiins/u-boot-xlnx.git
+      project: u-boot-xlnx.git
     linux:
-      uri: https://github.com/braiins/linux-xlnx.git
+      project: linux-xlnx.git
     cgminer:
-      uri: https://github.com/braiins/cgminer.git
-      branch: braiins-{subtarget_family}
+      project: cgminer.git
+      match:
+        zynq-dm1:
+          branch: braiins-dm1
+        zynq-am1:
+          branch: braiins-am1
     # it is possible to continue with any user repositories
 
 local:

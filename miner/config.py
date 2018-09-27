@@ -343,15 +343,18 @@ class RemoteWalker:
     """
     Remote = namedtuple('Remote', ['name', 'uri', 'branch', 'fetch'])
 
-    def __init__(self, remote):
+    def __init__(self, remote, platform):
         """
         Initialize RemoteWalker with remote attribute
 
         :param remote:
             Attribute remote from configuration file.
         """
+        self.platform = platform
         self.repos = remote.repos
         # get global settings
+        self._aliases = remote.aliases
+        self._location = remote.get('location', None)
         self._branch = remote.get('branch', 'master')
         self._fetch = remote.get('fetch', 'yes')
         self._fetch_force = remote.fetch_always == 'yes'
@@ -364,9 +367,33 @@ class RemoteWalker:
             Items are named tuples with `name`, `uri`, `branch` and `fetch` attribute.
         """
         for name, repo in self.repos.items():
-            branch = repo.get('branch', self._branch)
+            remote_attributes = {
+                'location': repo.get('location', self._location),
+                'project': repo.get('project', None),
+                'branch': repo.get('branch', self._branch)
+            }
+
+            match = repo.get('match', None)
+            if match:
+                # sort pattern to set attribute with lowest priority (shortest platform prefix)
+                # and continue to attributes with highest priority (longest platform prefix)
+                for pattern, attributes in sorted(match.items()):
+                    if not self.platform.startswith(pattern):
+                        continue
+                    for attribute, value in attributes.items():
+                        remote_attributes[attribute] = value
+
+            location = remote_attributes['location']
+            project = remote_attributes['project']
+            branch = remote_attributes['branch']
+
+            if not location or not project:
+                continue
+
+            server = self._aliases[location]
+            uri = '{}/{}'.format(server, project)
             fetch = self._fetch_force or repo.get('fetch', self._fetch) == 'yes'
-            yield self.Remote(name, repo.uri, branch, fetch)
+            yield self.Remote(name, uri, branch, fetch)
 
 
 def load_config(path: str):

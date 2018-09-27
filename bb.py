@@ -188,7 +188,7 @@ class CommandManager:
             # always fetch all repositories before creating release
             self._config.remote.fetch_always = 'yes'
 
-        builder = self.get_builder('checkout')
+        builder = self.get_builder()
         builder.release()
 
     def key(self):

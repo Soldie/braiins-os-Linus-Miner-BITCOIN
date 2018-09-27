@@ -387,7 +387,7 @@ class Builder:
         Return version name for firmware
 
         The firmware version is in a form 'firmware_<date>-<patch_level>-<lede_commit>(-dirty)'
-        The patch level is incremented when several firmwares have been released in the same day.
+        The patch level is incremented when several firmwares have beenRemoteWalker released in the same day.
         The current firmware version is get from git tag which is created when release is done.
 
         :return:
@@ -398,7 +398,7 @@ class Builder:
         # get commit time in RFC 3339 format
         commit_timestamp = repo.head.object.committed_date
         commit_time = datetime.fromtimestamp(commit_timestamp, timezone.utc)
-        fw_current = '{}_{}_{:%Y-%m-%d}-'.format(self.FEED_FIRMWARE, self._config.miner.platform, commit_time)
+        fw_current = '{}_{:%Y-%m-%d}-'.format(self.FEED_FIRMWARE, commit_time)
 
         # filter out only versions for current date
         fw_tags = (str(tag) for tag in repo.tags if str(tag).startswith(fw_current))
@@ -515,7 +515,7 @@ class Builder:
         if error:
             raise BuilderStop
 
-    def _clone_repo(self, remote):
+    def _clone_repo_doit(self, remote):
         """
         Clone repository when it is missing or remote server is changed
 
@@ -537,20 +537,22 @@ class Builder:
         repo = git.Repo.clone_from(remote.uri, path, progress=RepoProgressPrinter())
         self._repos[name] = repo
 
-    def clone_repos(self):
+    def clone_repos_doit(self):
         """
         Clone all repositories
 
         :return:
             List of generators used for doit task.
         """
-        for remote in RemoteWalker(self._config.remote):
-            yield self._clone_repo(remote)
+        for remote in RemoteWalker(self._config.remote, self._config.miner.platform):
+            yield self._clone_repo_doit(remote)
 
-    def _checkout_repo(self, remote):
+    def _checkout_repo(self, repo, remote):
         """
         Switch branches or pull it from remote repository
 
+        :param repo:
+            Opened GIT repository.
         :param remote:
             Named tuple where following attributes are used:
 
@@ -558,37 +560,7 @@ class Builder:
             - `uri` - address of remote git repository
             - `branch` - name of branch
             - `fetch` - if True then fetch+merge is done
-        :return:
-            Generator returning dictionary with dependencies and action for doit task.
         """
-        name = remote.name
-
-        def get_reference(repo):
-            """
-            Return reference to local branch or commit when exists otherwise return None
-            """
-            if remote.branch in repo.heads:
-                return repo.heads[remote.branch]
-            try:
-                return repo.commit(remote.branch)
-            except (git.BadName, ValueError):
-                return None
-
-        def head_uptodate():
-            """
-            Check if current local head is the same as requested one
-            """
-            repo = self._get_repo(name)
-            ref = get_reference(repo)
-            return ref == repo.head.reference if not repo.head.is_detached else ref == repo.head.commit
-
-        yield {
-            'name': name,
-            'uptodate': [not remote.fetch, head_uptodate]
-        }
-
-        repo = self._get_repo(name)
-
         def head_checkout():
             """
             Try to checkout local head to the requested branch or commit
@@ -618,7 +590,8 @@ class Builder:
             except (git.BadName, ValueError):
                 return False
 
-        # try to checkout head from local repository when fetch is disabled
+            # try to checkout head from local repository when fetch is disabled
+
         if remote.fetch or not head_checkout():
             # fetch remote repository when fetch is enabled or local checkout wasn't successful
             for repo_remote in repo.remotes:
@@ -629,17 +602,53 @@ class Builder:
                 logging.error("Cannot checkout branch '{}'".format(remote.branch))
                 raise BuilderStop
 
-    def checkout_repos(self):
+    def _checkout_repo_doit(self, remote):
+        """
+        Switch branches or pull it from remote repository
+
+        :param remote:
+            Named tuple with information about remote repository.
+        """
+        name = remote.name
+
+        def get_reference(repo):
+            """
+            Return reference to local branch or commit when exists otherwise return None
+            """
+            if remote.branch in repo.heads:
+                return repo.heads[remote.branch]
+            try:
+                return repo.commit(remote.branch)
+            except (git.BadName, ValueError):
+                return None
+
+        def head_uptodate():
+            """
+            Check if current local head is the same as requested one
+            """
+            repo = self._get_repo(name)
+            ref = get_reference(repo)
+            return ref == repo.head.reference if not repo.head.is_detached else ref == repo.head.commit
+
+        yield {
+            'name': name,
+            'uptodate': [not remote.fetch, head_uptodate]
+        }
+
+        repo = self._get_repo(name)
+        self._checkout_repo(repo, remote)
+
+    def checkout_repos_doit(self):
         """
         Fetch and checkout all repositories to specified branch
 
         :return:
             List of generators used for doit task.
         """
-        for remote in RemoteWalker(self._config.remote):
-            yield self._checkout_repo(remote)
+        for remote in RemoteWalker(self._config.remote, self._config.miner.platform):
+            yield self._checkout_repo_doit(remote)
 
-    def prepare_feeds_conf(self):
+    def prepare_feeds_conf_doit(self):
         """
         Prepare LEDE feeds
 
@@ -662,7 +671,7 @@ class Builder:
             for feeds_name, feeds_link in feeds_links.items():
                 feeds_file.write('src-link {} {}\n'.format(feeds_name, feeds_link))
 
-    def prepare_feeds_update(self):
+    def prepare_feeds_update_doit(self):
         """
         Update feeds from all sources
 
@@ -684,7 +693,7 @@ class Builder:
         logging.debug('Updating all feeds')
         self._run(os.path.join('scripts', 'feeds'), 'update', '-a')
 
-    def _prepare_feeds_link(self, name, link):
+    def _prepare_feeds_link_doit(self, name, link):
         """
         Install updated feeds
 
@@ -735,7 +744,7 @@ class Builder:
         self._run(os.path.join('scripts', 'feeds'), 'update', name)
         self._run(os.path.join('scripts', 'feeds'), 'install', '-a', '-p', name)
 
-    def prepare_feeds(self):
+    def prepare_feeds_doit(self):
         """
         Update and install all feeds
 
@@ -745,9 +754,9 @@ class Builder:
         feeds_links = self._config.feeds.links
 
         for feeds_name, feeds_link in feeds_links.items():
-            yield self._prepare_feeds_link(feeds_name, feeds_link)
+            yield self._prepare_feeds_link_doit(feeds_name, feeds_link)
 
-    def prepare_default_config(self):
+    def prepare_default_config_doit(self):
         """
         Initial default configuration
 
@@ -761,7 +770,7 @@ class Builder:
         logging.debug("Creating default configuration")
         self._run('make', 'defconfig')
 
-    def prepare_config(self):
+    def prepare_config_doit(self):
         """
         Prepare LEDE configuration file
 
@@ -838,7 +847,7 @@ class Builder:
             if os.path.exists(key_dst_path):
                 os.remove(key_dst_path)
 
-    def prepare_keys(self):
+    def prepare_keys_doit(self):
         """
         Prepare LEDE build keys
 
@@ -1969,6 +1978,57 @@ class Builder:
             # export PATH only if it has not been exported already
             sys.stdout.write('export PATH="${TOOLCHAIN}/bin:$PATH";\n')
 
+    def patch_config_branches(self):
+        config_remote = self._config.remote
+        config_aliases = config_remote.aliases
+
+        def get_repo(name, location, project, branch):
+            server = config_aliases[location]
+            uri = '{}/{}'.format(server, project)
+            repo_path = self._get_repo_path(name)
+            if os.path.isdir(repo_path):
+                repo = git.Repo(repo_path)
+                if repo.remotes.origin.url == uri:
+                    self._checkout_repo(repo, RemoteWalker.Remote(name, uri, branch, True))
+                    return repo
+                # directory contains different remote repository
+                shutil.rmtree(repo_path, ignore_errors=True)
+            return git.Repo.clone_from(uri, repo_path, branch=branch, progress=RepoProgressPrinter())
+
+        config = copy.deepcopy(self._config)
+        del config.remote.branch
+
+        default_location = config_remote.get('location', None)
+        default_branch = config_remote.get('branch', 'master')
+
+        for name, root_attributes in config_remote.repos.items():
+            root_location = root_attributes.get('location', default_location)
+            root_project = root_attributes.get('project', None)
+            root_branch = root_attributes.get('branch', default_branch)
+            match = root_attributes.get('match', None)
+            if root_location and root_project:
+                repo = get_repo(name, root_location, root_project, root_branch)
+                commit_sha = repo.head.object.hexsha
+                logging.debug("Set repository '{}' to commit {}...".format(name, commit_sha))
+                config.remote.repos.get(name).branch = commit_sha
+            if not match:
+                continue
+            for pattern, attributes in match.items():
+                pattern_location = attributes.get('location', root_location)
+                pattern_project = attributes.get('project', root_project)
+                pattern_branch = attributes.get('branch', root_branch)
+                repo = get_repo(name, pattern_location, pattern_project, pattern_branch)
+                commit_sha = repo.head.object.hexsha
+                logging.debug("Set repository '{}/{}' to commit {}...".format(name, pattern, commit_sha))
+                config.remote.repos.get(name).match.get(pattern).branch = commit_sha
+
+        # always checkout all repositories to correct commit
+        config.remote.fetch_always = 'yes'
+
+        logging.info("Saving default configuration file to {}...".format(self.DEFAULT_CONFIG))
+        with open(os.path.join(self.DEFAULT_CONFIG), 'w') as default_config:
+            config.dump(default_config)
+
     def release(self):
         """
         Create release branch in git based on current configuration
@@ -1999,30 +2059,14 @@ class Builder:
         repo_meta.head.reference = repo_meta.head.commit
 
         logging.debug("Patching repository branches in config...")
-        config = copy.deepcopy(self._config)
-        config_repos = config.remote.repos
-        del config.remote.branch
-
-        for name, repo in self._repos.items():
-            commit_sha = repo.head.object.hexsha
-            logging.debug("Set repository '{}' to commit {}...".format(name, commit_sha))
-            config_repos.get(name).branch = commit_sha
-
-        logging.info("Saving default configuration file to {}...".format(self.DEFAULT_CONFIG))
-        with open(self.DEFAULT_CONFIG, 'w') as default_config:
-            config.dump(default_config)
-
-        # always checkout all repositories to correct commit
-        config.remote.fetch_always = 'yes'
+        self.patch_config_branches()
 
         logging.debug("Creating new release commit...")
         repo_meta.index.add([self.DEFAULT_CONFIG])
         repo_meta.index.commit("[{}] Release "
                                "Firmware".format(self._config.miner.platform))
 
-        fw_version = '{}_{}_{}'.format(self.FEED_FIRMWARE,
-                                       self._config.miner.platform,
-                                       self._get_firmware_version())
+        fw_version = '{}_{}'.format(self.FEED_FIRMWARE, self._get_firmware_version())
         logging.info("Creating new release tag '{}'...".format(fw_version))
         repo_meta.create_tag(fw_version)
         repo_meta.remotes.origin.push(fw_version)

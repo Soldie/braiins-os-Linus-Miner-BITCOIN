@@ -54,7 +54,7 @@ def task_clone():
     """
     Task responsible for initial cloning of all repositories
     """
-    for clone_repo in builder.clone_repos():
+    for clone_repo in builder.clone_repos_doit():
         yield _get_sub_task(None, clone_repo)
 
 
@@ -62,7 +62,7 @@ def task_checkout():
     """
     Task responsible for switching all repositories to requested branch or commit
     """
-    for checkout_repo in builder.checkout_repos():
+    for checkout_repo in builder.checkout_repos_doit():
         yield _get_sub_task(None, checkout_repo, ['clone'])
 
 
@@ -70,18 +70,18 @@ def task_prepare():
     """
     Task responsible for preparation of LEDE build system
     """
-    yield _get_sub_task('feeds_conf', builder.prepare_feeds_conf(), ['checkout'])
-    yield _get_sub_task('feeds_update', builder.prepare_feeds_update(), ['prepare:feeds_conf'])
+    yield _get_sub_task('feeds_conf', builder.prepare_feeds_conf_doit(), ['checkout'])
+    yield _get_sub_task('feeds_update', builder.prepare_feeds_update_doit(), ['prepare:feeds_conf'])
 
     feeds_tasks = []
-    for prepare_feeds in builder.prepare_feeds():
+    for prepare_feeds in builder.prepare_feeds_doit():
         task = _get_sub_task(None, prepare_feeds, ['prepare:feeds_update'])
         task['name'] = 'feeds_install:{}'.format(task['name'])
         feeds_tasks.append('prepare:{}'.format(task['name']))
         yield task
 
-    yield _get_sub_task('default_config', builder.prepare_default_config(), feeds_tasks)
-    yield _get_sub_task('config', builder.prepare_config(), ['prepare:default_config'])
+    yield _get_sub_task('default_config', builder.prepare_default_config_doit(), feeds_tasks)
+    yield _get_sub_task('config', builder.prepare_config_doit(), ['prepare:default_config'])
 
-    for prepare_key in builder.prepare_keys():
+    for prepare_key in builder.prepare_keys_doit():
         yield _get_sub_task(None, prepare_key, ['prepare:config'])
