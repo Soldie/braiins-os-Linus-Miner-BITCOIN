@@ -1,4 +1,6 @@
 load_addr=0x2000000
+fdt_high=0x7FFFFFF
+initrd_high=0x7FFFFFF
 bitstream_addr=0x2100000
 bootenv=uEnv.txt
 set_bootargs=setenv bootargs console=ttyPS0,115200 root=/dev/ram0 r rootfstype=squashfs ${mtdparts} earlyprintk
