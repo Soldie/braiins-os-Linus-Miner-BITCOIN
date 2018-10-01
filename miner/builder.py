@@ -1991,6 +1991,10 @@ class Builder:
         config_remote = config_original.remote
         config_aliases = config_remote.aliases
 
+        def checkout_repo(repo, name, uri, branch):
+            logging.info("Checkout repository '{}' to branch {}...".format(name, branch))
+            self._checkout_repo(repo, RemoteWalker.Remote(name, uri, branch, True))
+
         def get_repo(name, location, project, branch):
             server = config_aliases[location]
             uri = '{}/{}'.format(server, project)
@@ -1998,11 +2002,14 @@ class Builder:
             if os.path.isdir(repo_path):
                 repo = git.Repo(repo_path)
                 if repo.remotes.origin.url == uri:
-                    self._checkout_repo(repo, RemoteWalker.Remote(name, uri, branch, True))
+                    checkout_repo(repo, name, uri, branch)
                     return repo
                 # directory contains different remote repository
                 shutil.rmtree(repo_path, ignore_errors=True)
-            return git.Repo.clone_from(uri, repo_path, branch=branch, progress=RepoProgressPrinter())
+            logging.info("Cloning repository '{}'...".format(name))
+            repo = git.Repo.clone_from(uri, repo_path, progress=RepoProgressPrinter())
+            checkout_repo(repo, name, uri, branch)
+            return repo
 
         config = copy.deepcopy(config_original)
         del config.remote.branch
@@ -2057,7 +2064,7 @@ class Builder:
             raise BuilderStop
 
         for name, repo in self._repos.items():
-            if repo.is_dirty():
+            if repo and repo.is_dirty():
                 logging.error("Repository '{}' is dirty!".format(name))
                 raise BuilderStop
 
@@ -2075,8 +2082,7 @@ class Builder:
 
         logging.debug("Creating new release commit...")
         repo_meta.index.add([self.DEFAULT_CONFIG])
-        repo_meta.index.commit("[{}] Release "
-                               "Firmware".format(self._config.miner.platform))
+        repo_meta.index.commit("Release Firmware")
 
         fw_version = '{}_{}'.format(self.FEED_FIRMWARE, self._get_firmware_version())
         logging.info("Creating new release tag '{}'...".format(fw_version))

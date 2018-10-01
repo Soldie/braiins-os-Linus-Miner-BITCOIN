@@ -85,11 +85,12 @@ remote:
     linux:
       project: linux-xlnx.git
     cgminer:
-      project: cgminer.git
       match:
         zynq-dm1:
+          project: cgminer.git
           branch: braiins-dm1
         zynq-am1:
+          project: cgminer.git
           branch: braiins-am1
     # it is possible to continue with any user repositories
 
