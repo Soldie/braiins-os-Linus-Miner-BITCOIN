@@ -3,3 +3,4 @@
 /build/
 /output/
 __pycache__/
+.local.yml

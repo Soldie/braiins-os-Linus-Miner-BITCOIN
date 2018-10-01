@@ -1978,8 +1978,17 @@ class Builder:
             # export PATH only if it has not been exported already
             sys.stdout.write('export PATH="${TOOLCHAIN}/bin:$PATH";\n')
 
-    def patch_config_branches(self):
-        config_remote = self._config.remote
+    def patch_config_branches(self, config_original):
+        """
+        Patch original configuration with current branch hash
+
+        The configuration tree is patched with the specific commit hash and then saved to default
+        configuration file 'configs/default.yml'.
+
+        :param config_original:
+            Original configuration tree before changes.
+        """
+        config_remote = config_original.remote
         config_aliases = config_remote.aliases
 
         def get_repo(name, location, project, branch):
@@ -1995,7 +2004,7 @@ class Builder:
                 shutil.rmtree(repo_path, ignore_errors=True)
             return git.Repo.clone_from(uri, repo_path, branch=branch, progress=RepoProgressPrinter())
 
-        config = copy.deepcopy(self._config)
+        config = copy.deepcopy(config_original)
         del config.remote.branch
 
         default_location = config_remote.get('location', None)
@@ -2029,7 +2038,7 @@ class Builder:
         with open(os.path.join(self.DEFAULT_CONFIG), 'w') as default_config:
             config.dump(default_config)
 
-    def release(self):
+    def release(self, config_original):
         """
         Create release branch in git based on current configuration
 
@@ -2037,6 +2046,9 @@ class Builder:
         * modify default YAML configuration so that all repositories points to the specific commit
         * create new commit with modified configuration
         * tag new commit with firmware version and push it upstream
+
+        :param config_original:
+            Original configuration tree before changes.
         """
         repo_meta = git.Repo()
 
@@ -2059,7 +2071,7 @@ class Builder:
         repo_meta.head.reference = repo_meta.head.commit
 
         logging.debug("Patching repository branches in config...")
-        self.patch_config_branches()
+        self.patch_config_branches(config_original)
 
         logging.debug("Creating new release commit...")
         repo_meta.index.add([self.DEFAULT_CONFIG])

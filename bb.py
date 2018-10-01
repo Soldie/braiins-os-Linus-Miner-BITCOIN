@@ -31,6 +31,8 @@ from doit.doit_cmd import DoitMain
 
 
 class CommandManager:
+    LOCAL_CONFIGURATION = '.local.yml'
+
     def __init__(self):
         self._argv = None
         self._args = None
@@ -54,6 +56,11 @@ class CommandManager:
         self._config.setdefault('uenv.factory_reset', 'no')
         self._config.setdefault('uenv.sd_images', 'no')
         self._config.setdefault('uenv.sd_boot', 'no')
+
+        # overload settings with local configuration
+        if os.path.isfile(self.LOCAL_CONFIGURATION):
+            config_local = miner.load_config(self.LOCAL_CONFIGURATION)
+            self._config.merge(config_local)
 
         # change default platform in configuration
         if args.platform:
@@ -188,8 +195,9 @@ class CommandManager:
             # always fetch all repositories before creating release
             self._config.remote.fetch_always = 'yes'
 
+        config_original = miner.load_config(self._args.config)
         builder = self.get_builder()
-        builder.release()
+        builder.release(config_original)
 
     def key(self):
         logging.debug("Called command 'key'")

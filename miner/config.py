@@ -278,6 +278,46 @@ class ConfigWrapper:
         pairs = self._root.items() if self._is_dict() else enumerate(self._root)
         return ((key, ConfigWrapper(value, formatter=self.formatter)) for key, value in pairs)
 
+    def _merge(self, attribute, value):
+        """
+        Auxiliary method for recursive merging of two configurations
+
+        :param attribute:
+            Name of attribute used for overloading.
+        :param value:
+            Value of attribute for overloading.
+        """
+        def merge_type(root_value, value):
+            return type(value) is ConfigWrapper and type(root_value._root) is type(value._root)
+
+        root_value = self.get(attribute)
+        if not root_value or not merge_type(root_value, value):
+            # if attribute does not exist or has different type then simply copy/override this attribute
+            if type(value) is ConfigWrapper:
+                value = value._root
+            setattr(self, attribute, copy.deepcopy(value))
+            return
+        # source and destination attribute can be merged
+        if type(root_value._root) is YAML_LIST_TYPE:
+            # lists are replaced
+            setattr(self, attribute, copy.deepcopy(value._root))
+            return
+        # dictionary is recursively merged
+        for next_attribute, next_value in value.items():
+            root_value._merge(next_attribute, next_value)
+
+    def merge(self, config):
+        """
+        Merge settings from another configuration
+
+        Dictionaries are merged and lists are replaced with new one settings.
+
+        :param config:
+            Dictionary with configuration tree.
+        """
+        for attribute, value in config.items():
+            self._merge(attribute, value)
+
     def dump(self, stream):
         """
         Dump current configuration to the opened stream
