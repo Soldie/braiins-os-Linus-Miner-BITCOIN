@@ -1,6 +1,7 @@
 # common lists
 core:
   list:
+    - ca-bundle
     - ca-certificates
     - cgminer
     - cgminer_monitor
@@ -16,12 +17,11 @@ core:
     - libiwinfo-lua
     - liblua
     - libmbedtls
-    - libopenssl
     - libpcap
-    - libpcre
     - libubus-lua
     - libuci-lua
     - libuclient
+    - libustream-mbedtls
     - lua
     - lua-cjson
     - luasocket
@@ -40,7 +40,6 @@ core:
     - uclient-fetch
     - uhttpd
     - uhttpd-mod-ubus
-    - wget
     - zlib
 
 block_mount:
