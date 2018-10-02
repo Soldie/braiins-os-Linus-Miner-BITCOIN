@@ -2106,4 +2106,5 @@ class Builder:
         usign = self._get_utility(self.LEDE_USIGN)
         self._run(usign, '-G',
                   '-s', os.path.abspath(secret_path),
-                  '-p', os.path.abspath(public_path))
+                  '-p', os.path.abspath(public_path),
+                  '-c', 'Local build key')
