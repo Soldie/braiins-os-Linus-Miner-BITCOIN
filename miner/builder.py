@@ -1877,6 +1877,24 @@ class Builder:
         if images_feeds:
             self._deploy_feeds(images_feeds)
 
+    @staticmethod
+    def _count_commits(repo, branch_name=None):
+        """
+        Count commits difference among current branch and remote branch
+
+        :param repo:
+            Initialized repository object.
+        :param branch_name:
+            Name of branch to compare or None when current branch should be used.
+        :return:
+            Pair with number of commits ahead and behind remote branch.
+        """
+        # get current branch name if not specified
+        branch_name = branch_name or repo.active_branch.name
+        commits_ahead = sum(1 for _ in repo.iter_commits('{0}@{{u}}..{0}'.format(branch_name)))
+        commits_behind = sum(1 for _ in repo.iter_commits('{0}..{0}@{{u}}'.format(branch_name)))
+        return commits_ahead, commits_behind
+
     def status(self):
         """
         Show status of all repositories
@@ -1900,6 +1918,18 @@ class Builder:
             branch_name = repo.active_branch.name if not repo.head.is_detached else \
                 'HEAD detached at {}'.format(repo.head.object.hexsha[:8])
             logging.info("Status for '{}': '{}' ({})".format(name, working_dir, branch_name))
+            if not repo.head.is_detached:
+                commits_ahead, commits_behind = self._count_commits(repo, branch_name)
+                if commits_ahead and commits_behind:
+                    print(colored("Your branch and 'origin/{}' have diverged,".format(branch_name), 'magenta'))
+                    print(colored("and have {} and {} different commits each, respectively."
+                                  .format(commits_ahead, commits_behind), 'magenta'))
+                elif commits_ahead:
+                    print(colored("Your branch is ahead of 'origin/{}' by {} commit."
+                                  .format(branch_name, commits_ahead), 'magenta'))
+                elif commits_behind:
+                    print(colored("Your branch is behind 'origin/{}' by {} commit, and can be fast-forwarded."
+                                  .format(branch_name, commits_behind), 'magenta'))
             clean = True
             indexed_files = repo.head.commit.diff()
             if len(indexed_files):
