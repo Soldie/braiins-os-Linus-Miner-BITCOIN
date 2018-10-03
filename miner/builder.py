@@ -533,6 +533,13 @@ class Builder:
                          config_changed(remote.uri)]
         }
 
+        repo = self._repos[name]
+        if repo and (repo.is_dirty(untracked_files=True) or self._count_commits(repo)[0] != 0):
+            # old repo exists and should not be removed when there are changes
+            logging.error("URI of repository '{}' has changed but new repository cannot be fetched due to local changes"
+                          .format(name))
+            raise BuilderStop
+
         shutil.rmtree(path, ignore_errors=True)
         repo = git.Repo.clone_from(remote.uri, path, progress=RepoProgressPrinter())
         self._repos[name] = repo
