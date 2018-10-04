@@ -106,10 +106,6 @@ for subtarget in $release_subtargets; do
      $DRY_RUN mv $platform $fw_prefix;
      ($DRY_RUN cd $fw_prefix;
       $DRY_RUN mv nand_$nand $factory_fw;
-      ($DRY_RUN cd $factory_fw;
-       $DRY_RUN mv upgrade.py upgrade2bos.py;
-       $DRY_RUN mv restore.py restore2factory.py
-      )
      )
      pack_and_sign_script=pack-and-sign-$fw_prefix.sh
      fw_archive=$fw_prefix.tar.bz2
