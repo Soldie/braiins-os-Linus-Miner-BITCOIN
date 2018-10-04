@@ -63,12 +63,15 @@ function generate_sd_img() {
     echo sudo kpartx -d ./$sd_img
 }
 
+tag=`git tag | grep $date_and_patch_level | tail -1`
+tag_prefix=firmware_
+version=${tag#${tag_prefix}}
+$DRY_RUN git checkout $tag
 # Iterate all releases/switch repo and build
 for subtarget in $release_subtargets; do
     # latest release
-    tag=`git tag | grep $subtarget | grep $date_and_patch_level | tail -1`
     platform=$target-$subtarget
-    fw_prefix=braiins-os-$tag
+    fw_prefix=braiins-os_${subtarget}_${version}
     case $subtarget in
 	am*) nand=am;;
 	dm*) nand=dm_v2;;
