@@ -1,9 +1,35 @@
+# Table of contents
+
+- [Overview](#overview)
+- [Common steps](#common-steps)
+- [Method 1: Creating bootable SD card image  (Antminer S9i example)](#method-1--creating-bootable-sd-card-image---antminer-s9i-example-)
+  * [Adjusting MAC address](#adjusting-mac-address)
+  * [Booting the device from SD card](#booting-the-device-from-sd-card)
+- [Method 2: Migrating from factory firmware to braiins OS](#method-2--migrating-from-factory-firmware-to-braiins-os)
+- [Maintenance & troubleshooting](#maintenance---troubleshooting)
+  * [Migrating from braiins OS to factory firmware](#migrating-from-braiins-os-to-factory-firmware)
+  * [Recovering bricked (unbootable) devices using SD card](#recovering-bricked--unbootable--devices-using-sd-card)
+  * [Firmware upgrade](#firmware-upgrade)
+  * [Factory reset (to initial braiins OS version)](#factory-reset--to-initial-braiins-os-version-)
+
 # Overview
 
-This document is a quick-start guide how to install braiins OS image
-on an original factory firmware.
+This document is a quick-start guide on how to install braiins OS on your mining device using a Linux computer.
+There are two ways how to test and use braiins OS:
 
-It is recommended to test the hardware with an SD card image before flashing the firmware directly into your device.
+1. Boot from SD card with braiins OS image, effectively keeping the stock firmware in the built-in flash memory. In case you encounter any issues, you can simply boot the stock firmware from the internal memory. This is a safe way we suggest to start with.
+
+2. Permanently reflash the stock firmware, effectively replacing the manufacturer’s firmware completely with braiins OS. In this method the only way how to go back to the default stock setup is to restore the manufacturer’s firmware from a backup that you create during install.
+
+Due to aforementioned reasons, it is higly recommended to install braiins OS firmware **only on devices with SD card slots**.
+
+You will need:
+
+* supported ASIC miner (see the list below)
+* computer with Linux (this guide is tailored for Linux, however, the procedure should be fairly similar on Windows or macOS)
+* SD card (optional but recommended method)
+
+*Note: Commands used in this manual are instructional. You might need to adjust file paths and names adequately.*
 
 # Common steps
 
@@ -18,7 +44,7 @@ The table below outlines correspondence between firmware image archive and a par
 | braiins-os-firmware_zynq-dm1-g9_*.tar.bz2 | Dragon Mint T1 with G9 control board |
 | braiins-os-firmware_zynq-dm1-g19_*.tar.bz2 | Dragon Mint T1 with G19 control board |
 
-The image signature can be verified by GPG:
+You can check the downloaded file for its authenticity and integrity. The image signature can be verified by [GPG](https://www.gnupg.org/documentation/):
 
 ```bash
 gpg --search-keys release@braiins.cz
@@ -42,7 +68,7 @@ for i in  ./braiins-os-firmware_*.tar.bz2; do tar xvjf $i; done
 The downloaded firmware image contains SD card components as well has a transitional firmware that can be flashed into device's on-board flash memory.
 
 
-# Testing SD card image  (Antminer S9i example)
+# Method 1: Creating bootable SD card image  (Antminer S9i example)
 
 Insert an empty SD card into your reader and identify its block device (e.g. by ```lsblk```). You need an SD card with minimum capacity of 32 MB.
 
@@ -57,18 +83,19 @@ If you know the MAC address of your device, mount the SD card and adjust the MAC
 
 ## Booting the device from SD card
 - Unmount the SD card
-- Adjust jumper to boot from SD card (instead of flash memory):
+- Adjust jumper to boot from SD card (instead of NAND memory):
    - [Antminer S9](s9)
    - [Dragon Mint T1](dm1)
-- Insert it into the device and start the device. You should see a login screen shortly.
+- Insert it into the device, start the device.
+- After a moment, you should be able to access braiins OS interface on device IP address.
 
 
-# Migrating from factory firmware to Braiins OS
+# Method 2: Migrating from factory firmware to braiins OS
 
 Once the SD card works, it is very safe to attempt flashing the built-in flash memory as there will always be a way to recover the factory firmware.
-Follow the steps below. The tool creates a backup of the original firmware in the ```backup``` folder
+Follow the steps below. The tool creates a backup of the original firmware in the ```backup``` folder. It is important to **keep the backup safe** to resolve any potential future issues.
 
-Below are steps to replace original factory firmware with braiins OS. The tool attempts to login to the machine via ssh, therefore you maybe prompted for a password.
+Below are steps to replace original factory firmware with braiins OS. The tool attempts to login to the machine via SSH, therefore you maybe prompted for a password.
 
 ```bash
 cd braiins-os-firmware_am1-s9-latest/factory-transition
@@ -79,26 +106,30 @@ pip install -r ./requirements.txt
 python3 upgrade2bos.py your-miner-hostname-or-ip
 ```
 
-# Migrating from Braiins OS to factory firmware
+# Maintenance & troubleshooting
+
+## Migrating from braiins OS to factory firmware
 
 Restoring the original factory firmware requires issuing the command below. Please, note that the previously created backup needs to be available.
 
 ```bash
-python3 restore2factory.py backup/2ce9c4aab53c-2018-09-19/ your-miner-hostname-or-ip
+python3 restore2factory.py backup/backup-id-date/ your-miner-hostname-or-ip
 ```
 
-# Recovering bricked (unbootable) devices using SD card
+## Recovering bricked (unbootable) devices using SD card
 
-If anything goes wrong and your device seems unbootable, you can use the previously created SD card image to recover it:
+If anything goes wrong and your device seems unbootable, you can use the previously created SD card image to recover it (flash the manufacturer’s firmware to the built-in flash memory):
 
-- Follow the steps in *Testing SD card image* to boot the device
+- Follow the steps in *Creating bootable SD card image* to boot the device
 - Run:
 ```
 cd braiins-os-firmware_am1-s9-latest/factory-transition
 python3 restore.py --sd-recovery backup/2ce9c4aab53c-2018-09-19/ your-miner-hostname-or-ip
 ```
 
-# Firmware upgrade
+After the script finishes, wait a few minutes and adjust jumper to boot from NAND (internal memory) afterwards.
+
+## Firmware upgrade
 
 Firmware upgrade process uses standard mechanism for installing/upgrading software packages within any OpenWrt based system. Follow the steps below to perform firmware upgrade:
 
@@ -134,7 +165,7 @@ Connection to 10.33.0.166 closed by remote host.
 Connection to 10.33.0.166 closed.
 ```
 
-# Factory reset
+## Factory reset (to initial braiins OS version)
 
 Factory reset is as simple as uninstalling the the current firmware package:
 
