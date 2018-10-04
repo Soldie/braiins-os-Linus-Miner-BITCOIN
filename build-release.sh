@@ -55,6 +55,7 @@ function generate_sd_img() {
 
     echo sudo kpartx -s -av ./$sd_img
     echo sudo mkfs.vfat /dev/mapper/loop0p1
+    echo sudo mkfs.ext4 /dev/mapper/loop0p2
     echo sudo mount /dev/mapper/loop0p1 /mnt
     echo sudo cp $1/'sd/*' /mnt/
     echo sudo umount /mnt
