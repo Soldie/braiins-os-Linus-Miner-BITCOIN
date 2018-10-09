@@ -50,7 +50,7 @@ remote:
   fetch_always: no
   # location aliases for remote repositories
   aliases:
-    bos: https://github.com/braiins
+    bos: '{meta_repo}'
     openwrt_feed: git://git.openwrt.org/feed
   # default location for remote repositories
   location: bos

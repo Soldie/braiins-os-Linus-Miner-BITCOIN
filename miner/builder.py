@@ -280,9 +280,12 @@ class Builder:
                 :param builder:
                     The builder object for expanding tags for current configuration.
                 """
+                repo_meta = git.Repo()
+                repo_url = repo_meta.remotes.origin.url
                 platform = config.miner.platform
                 split_platform = builder._split_platform(platform)
                 self._format_tags = {
+                    'meta_repo': repo_url.rsplit('/', 1)[0],
                     'platform': platform,
                     'target': split_platform[0],
                     'subtarget': split_platform[1],
@@ -2034,7 +2037,8 @@ class Builder:
             self._checkout_repo(repo, RemoteWalker.Remote(name, uri, branch, True))
 
         def get_repo(name, location, project, branch):
-            server = config_aliases[location]
+            # expand server with original config formatter
+            server = self._config.formatter(config_aliases[location])
             uri = '{}/{}'.format(server, project)
             repo_path = self._get_repo_path(name)
             if os.path.isdir(repo_path):
