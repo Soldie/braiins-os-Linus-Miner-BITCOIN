@@ -37,6 +37,10 @@ SOURCE_DIR = 'firmware'
 TARGET_DIR = '/tmp/firmware'
 
 
+class UpgradeStop(Exception):
+    pass
+
+
 class Progress:
     def __init__(self, file_path):
         self.file_path = file_path
@@ -78,6 +82,14 @@ def prepare_system(ssh):
     ]
 
     print("Preparing remote system...")
+
+    for file_name, remote_path in binaries:
+        remote_file_name = '{}/{}'.format(remote_path, file_name)
+        try:
+            ssh.run('test', '!', '-e', remote_file_name)
+        except subprocess.CalledProcessError:
+            print("File '{}' exists on remote target already!".format(remote_file_name))
+            raise UpgradeStop
 
     for file_name, remote_path in binaries:
         ssh.run('mkdir', '-p', remote_path)
@@ -126,9 +138,29 @@ def backup_firmware(ssh):
                    'ethaddr={}\n'.format(','.join(mtdparts), mac))
 
 
+def check_compatibility(ssh):
+    try:
+        with ssh.open('/tmp/sysinfo/board_name', 'r') as remote_file:
+            board_name = next(remote_file).strip()
+            print("This script cannot be used for remote target with board name '{}'!".format(board_name))
+            if board_name in ('dm1-g9', 'dm1-g19', 'am1-s9'):
+                print("Remote target is running braiins OS already and should be upgraded as follows:")
+                print("- from standard web interface")
+                print("- from command line with 'opkg' utility")
+            raise UpgradeStop
+    except subprocess.CalledProcessError:
+        pass
+
+
 def main(args):
     print("Connecting to remote host...")
     with SSHManager(args.hostname, USERNAME, PASSWORD) as ssh:
+        # check compatibility of remote server
+        check_compatibility(ssh)
+
+        if not args.no_backup:
+            backup_firmware(ssh)
+
         # prepare target directory
         ssh.run('rm', '-fr', TARGET_DIR)
         ssh.run('mkdir', '-p', TARGET_DIR)
@@ -136,9 +168,6 @@ def main(args):
         # upgrade remote system with missing utilities
         if os.path.isdir(SYSTEM_DIR):
             prepare_system(ssh)
-
-        if not args.no_backup:
-            backup_firmware(ssh)
 
         # copy firmware files to the server over SFTP
         sftp = ssh.open_sftp()
@@ -179,4 +208,8 @@ if __name__ == "__main__":
 
     # parse command line arguments
     args = parser.parse_args(sys.argv[1:])
-    main(args)
+
+    try:
+        main(args)
+    except UpgradeStop:
+        pass

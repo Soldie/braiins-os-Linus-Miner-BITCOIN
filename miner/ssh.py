@@ -160,12 +160,12 @@ class SSHManager:
         logging.debug("Remotely opening file '{}' with mode '{}'".format(file, mode))
         stdin, stdout, stderr = self._client.exec_command(cmd)
         if mode == 'r':
+            self._check_exit_status(cmd, stdout, stderr)
             yield stdout
         else:
             yield stdin
             stdin.channel.shutdown_write()
-
-        self._check_exit_status(cmd, stdout, stderr)
+            self._check_exit_status(cmd, stdout, stderr)
 
     def _get_cmd(self, args) -> str:
         """
