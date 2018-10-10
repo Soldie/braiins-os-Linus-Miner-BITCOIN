@@ -503,7 +503,7 @@ created by *deploy* command with *local_feeds* target:
 $ ./bb.py deploy local_feeds:~/server/initial_feeds
 
 # the other deployments should be created with the previous contents
-$ ./bb.py deploy local_feeds:~/server/new_feeds --feeds-base ~/server/initial_feeds/Packages
+$ ./bb.py deploy local_feeds:~/server/new_feeds --feeds-base file://~/server/initial_feeds/Packages
 ```
 
 The output directory should be empty before calling deploy command to ensure that the directory would not contain any

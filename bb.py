@@ -269,7 +269,7 @@ def main(argv):
     subparser.add_argument('--uenv', choices=['mac', 'factory_reset', 'sd_images', 'sd_boot'], nargs='*',
                            help='enable some options in uEnv.txt for SD images')
     subparser.add_argument('--feeds-base', nargs='?',
-                           help='path to the Packages file for concatenation with new feeds index '
+                           help='URL to the Packages file for concatenation with new feeds index '
                                 '(for local_feeds target only)')
     subparser.add_argument('target', nargs='*',
                            help='list of targets for deployment (local target can specify also output directory '

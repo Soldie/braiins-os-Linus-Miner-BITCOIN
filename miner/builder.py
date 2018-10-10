@@ -36,6 +36,7 @@ from termcolor import colored
 from functools import partial
 from datetime import datetime, timezone
 from doit.tools import run_once, config_changed, check_timestamp_unchanged
+from urllib.request import urlopen
 
 from miner.config import ListWalker, RemoteWalker, load_config
 from miner.repo import RepoProgressPrinter
@@ -1695,21 +1696,19 @@ class Builder:
             logging.error("Missing firmware package in '{}'".format(src_feeds_index))
             raise BuilderStop
 
-        # overwrite previous file
-        mode = 'w'
-
         # prepare base feeds index
-        feeds_base = self._config.deploy.get('feeds_base', None)
-        if feeds_base:
-            # append to base file if file is not empty
-            if os.path.getsize(feeds_base) > 0:
-                shutil.copy(feeds_base, dst_feeds_index)
-                mode = 'a'
+        feeds_base = None
+        feeds_base_url = self._config.deploy.get('feeds_base', None)
+
+        if feeds_base_url:
+            # appending to previous index
+            feeds_base = urlopen(feeds_base_url)
+            feeds_base = feeds_base.read().decode('utf-8')
 
         # create destination feeds index
-        with open(dst_feeds_index, mode) as dst_packages:
-            if mode == 'a':
-                # appending to previous index
+        with open(dst_feeds_index, 'w') as dst_packages:
+            if feeds_base:
+                dst_packages.write(feeds_base)
                 dst_packages.write('\n')
             for attribute, value in firmware_package.items():
                 if attribute not in self.FEEDS_EXCLUDED_ATTRIBUTES:
