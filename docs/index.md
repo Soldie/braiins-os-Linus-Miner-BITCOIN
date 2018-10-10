@@ -47,7 +47,7 @@ The table below outlines correspondence between firmware image archive and a par
 You can check the downloaded file for its authenticity and integrity. The image signature can be verified by [GPG](https://www.gnupg.org/documentation/):
 
 ```bash
-gpg --search-keys release@braiins.cz
+gpg2 --search-keys release@braiins.cz
 for i in ./braiins-os-firmware_*.tar.bz2; do gpg2 --verify $i.asc; done
 ```
 
