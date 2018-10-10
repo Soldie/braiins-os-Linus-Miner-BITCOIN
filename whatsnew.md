@@ -1,5 +1,3 @@
-# 2018-10-04-0
-
 ## Antminer
 - the transitional firmware now supports flashing Antminers S9 in addition to originally supported S9i
 

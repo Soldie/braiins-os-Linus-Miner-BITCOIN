@@ -75,6 +75,7 @@ class Builder:
     on target platform.
     """
     DEFAULT_CONFIG = os.path.join('configs', 'default.yml')
+    WHATS_NEW = 'whatsnew.md'
 
     LEDE_META_DIR = 'miner'
     LEDE_META_SSH = 'ssh.py'
@@ -387,7 +388,7 @@ class Builder:
         if output:
             return process.stdout
 
-    def _get_firmware_version(self) -> str:
+    def _get_firmware_version(self, short=False, local_time=False) -> str:
         """
         Return version name for firmware
 
@@ -395,14 +396,22 @@ class Builder:
         The patch level is incremented when several firmwares have beenRemoteWalker released in the same day.
         The current firmware version is get from git tag which is created when release is done.
 
+        :param short:
+            Return unique short version without commit suffix.
+        :param local_time:
+            Use local time for firmware version instead of committed date of head.
         :return:
             String with firmware version without 'firmware_' prefix.
         """
         repo = git.Repo()
 
         # get commit time in RFC 3339 format
-        commit_timestamp = repo.head.object.committed_date
-        commit_time = datetime.fromtimestamp(commit_timestamp, timezone.utc)
+        if local_time:
+            commit_time = datetime.utcnow()
+        else:
+            commit_timestamp = repo.head.object.committed_date
+            commit_time = datetime.fromtimestamp(commit_timestamp, timezone.utc)
+
         fw_current = '{}_{:%Y-%m-%d}-'.format(self.FEED_FIRMWARE, commit_time)
 
         # filter out only versions for current date
@@ -423,7 +432,8 @@ class Builder:
             # when any release hasn't been created then use initial patch level 0
             patch_level = 0
 
-        return '{:%Y-%m-%d}-{}-{}{}'.format(commit_time, patch_level, commit, dirty)
+        prefix = '{:%Y-%m-%d}-{}'.format(commit_time, patch_level)
+        return prefix if short else '{}-{}{}'.format(prefix, commit, dirty)
 
     def _get_repo(self, name: str) -> git.Repo:
         """
@@ -2018,6 +2028,32 @@ class Builder:
             # export PATH only if it has not been exported already
             sys.stdout.write('export PATH="${TOOLCHAIN}/bin:$PATH";\n')
 
+    def patch_whatsnew(self, path, version_short):
+        """
+        Patch 'whatsnew.md' header with firmware version
+
+        Check if there is written some information before release.
+
+        :param path:
+            Path to whatsnew file.
+        :param version_short:
+            Short firmware version (without commit hash).
+        """
+        with open(path, 'r') as whatsnew:
+            lines = whatsnew.readlines()
+
+        if not lines:
+            logging.error("File '{}' is empty".format(path))
+            raise BuilderStop
+
+        if not lines[0].startswith('## '):
+            logging.error("Incorrect header in '{}' file: '{}'".format(path, lines[0].strip()))
+            raise BuilderStop
+
+        with open(path, 'w') as whatsnew:
+            whatsnew.write('# {}\n\n'.format(version_short))
+            whatsnew.writelines(lines)
+
     def patch_config_branches(self, config_original):
         """
         Patch original configuration with current branch hash
@@ -2112,6 +2148,14 @@ class Builder:
         # save active branch to return back after creating release
         meta_active_branch = repo_meta.active_branch
 
+        # get short version for 'whatsnew.md' header
+        fw_version_short = self._get_firmware_version(short=True, local_time=True)
+        self.patch_whatsnew(self.WHATS_NEW, fw_version_short)
+
+        # create commit with patched whatsnew file
+        repo_meta.index.add([self.WHATS_NEW])
+        repo_meta.index.commit("Create version header for '{}'".format(self.WHATS_NEW))
+
         logging.debug("Fetching all tags from remote repository...")
         repo_meta.remotes.origin.fetch()
 
@@ -2125,13 +2169,25 @@ class Builder:
         repo_meta.index.add([self.DEFAULT_CONFIG])
         repo_meta.index.commit("Release Firmware")
 
-        fw_version = '{}_{}'.format(self.FEED_FIRMWARE, self._get_firmware_version())
+        fw_version_long = self._get_firmware_version()
+        fw_version = '{}_{}'.format(self.FEED_FIRMWARE, fw_version_long)
+
+        # check if full version has the same prefix as short one
+        # it can happen when release is done just before midnight
+        if not fw_version_long.startswith(fw_version_short):
+            meta_active_branch.checkout()
+            repo_meta.head.reset('HEAD~1')
+            logging.error("Created wrong short version for '{}'".format(self.WHATS_NEW))
+            logging.warning("Try to run release script again! This happens when release is done just before midnight")
+            raise BuilderStop
+
         logging.info("Creating new release tag '{}'...".format(fw_version))
         repo_meta.create_tag(fw_version)
         repo_meta.remotes.origin.push(fw_version)
 
         # return back to active branch
         meta_active_branch.checkout()
+        repo_meta.remotes.origin.push()
 
     def generate_key(self, secret_path, public_path):
         """
