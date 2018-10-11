@@ -26,17 +26,26 @@ from getpass import getpass
 
 logging.getLogger("paramiko").setLevel(logging.CRITICAL)
 
+
+class SSHError(Exception):
+    """
+    Wrapper for paramiko exception.
+    """
+    def __init__(self, message):
+        super().__init__(message)
+
+
 class SSHClient(paramiko.SSHClient):
     """
     Class for support authentication without password and key
     """
     def _auth(self, username, password, pkey, key_filenames, allow_agent,
-              look_for_keys, gss_auth, gss_kex, gss_deleg_creds, gss_host):
+              look_for_keys, gss_auth, gss_kex, gss_deleg_creds, gss_host, passphrase):
         if password is None and not look_for_keys:
             self._transport.auth_none(username)
         else:
             super()._auth(username, password, pkey, key_filenames, allow_agent,
-                          look_for_keys, gss_auth, gss_kex, gss_deleg_creds, gss_host)
+                          look_for_keys, gss_auth, gss_kex, gss_deleg_creds, gss_host, passphrase)
 
 
 class SSHManager:
@@ -69,12 +78,9 @@ class SSHManager:
 
         self._client.set_missing_host_key_policy(paramiko.WarningPolicy())
 
-    def __enter__(self):
+    def _connect(self):
         """
         Connect to an SSH server and authenticate to it
-
-        :return:
-            SSH manager connected to the server.
         """
         logging.debug("Connecting to remote SSH server...'")
         # at first try to login with ssh key
@@ -111,7 +117,24 @@ class SSHManager:
                 # prompt the user when everything fails
                 password = getpass()
             else:
-                return self
+                break
+
+    def __enter__(self):
+        """
+        Connect to an SSH server and authenticate to it
+
+        :return:
+            SSH manager connected to the server.
+        """
+        try:
+            self._connect()
+        except paramiko.ssh_exception.NoValidConnectionsError as e:
+            raise SSHError(e.strerror)
+        except paramiko.ssh_exception.BadHostKeyException as e:
+            raise SSHError("The host key for '{}' has changed!\n"
+                           "Remove incorrect key from '~/.ssh/known_hosts' or replace it with correct one"
+                           .format(e.hostname))
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """

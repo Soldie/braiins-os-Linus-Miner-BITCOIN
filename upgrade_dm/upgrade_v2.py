@@ -25,7 +25,7 @@ import hwid
 import sys
 import os
 
-from ssh import SSHManager
+from ssh import SSHManager, SSHError
 from progress.bar import Bar
 
 USERNAME = 'root'
@@ -211,5 +211,7 @@ if __name__ == "__main__":
 
     try:
         main(args)
+    except SSHError as e:
+        print(str(e))
     except UpgradeStop:
         pass

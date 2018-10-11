@@ -25,7 +25,7 @@ import time
 import sys
 import os
 
-from ssh import SSHManager
+from ssh import SSHManager, SSHError
 from time import time as now
 
 USERNAME = 'root'
@@ -113,10 +113,14 @@ def main(args):
 
     if not args.sd_recovery:
         print("Connecting to remote host...")
-        with SSHManager(args.hostname, USERNAME, PASSWORD) as ssh:
-            ssh.run('fw_setenv', RECOVERY_MTDPARTS[:-1], '"{}"'.format(mtdparts_params))
-            ssh.run('miner', 'run_recovery')
-        wait_for_reboot(args.hostname, REBOOT_DELAY)
+        try:
+            with SSHManager(args.hostname, USERNAME, PASSWORD) as ssh:
+                ssh.run('fw_setenv', RECOVERY_MTDPARTS[:-1], '"{}"'.format(mtdparts_params))
+                ssh.run('miner', 'run_recovery')
+            wait_for_reboot(args.hostname, REBOOT_DELAY)
+        except SSHError as e:
+            print(str(e))
+            return
 
     print("Connecting to remote host...")
     # do not use host keys because recovery mode has different keys for the same MAC
