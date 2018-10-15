@@ -196,6 +196,24 @@ The default configuration file is fully commented so the following list of globa
 * *deploy* - the list of targets for deployment and configuration of this process (e.g. reset of target environment,
   remote ssh connection, ...)
 
+### Local Configuration File
+
+It is possible to override each parameter specified in default configuration file with a parameters defined in a local
+file *.local.yml* stored in the root directory of the braiins build system.
+
+The structure of the local configuration is the same as default configuration file. There is usually overridden only
+platform or MAC address of target:
+
+```yaml
+miner:
+  # possible platforms are zynq-dm1-g9, zynq-dm1-g19, zynq-am1-s9
+  platform: zynq-am1-s9
+  # default miner MAC address
+  mac: 00:0A:35:FF:FF:00
+```
+
+*During release process, this local configuration is ignored to avoid interference with the default configuration!*
+
 ### CLI Parameters
 
 The braiins build system supports multiple configurations which can be selected by global parameter *--config*. When the
@@ -215,6 +233,56 @@ The build system commands are described in detail in separate sections. Below is
 * *toolchain* - set environment for OpenWrt toolchain (out-of-tree build)
 * *release* - create branch with configuration for release version
 * *key* - generate build key pair for signing firmware tarball and packages
+
+Some commands have special parameters which are mapped to default *YAML* configuration file. The CLI parameters have the
+highest priority and cannot be overridden by local configuration file.
+
+### Remote Repositories Configuration
+
+The list of all remote repositories for fetching by the braiins build system is specified in the *remote* attribute in
+*YAML* configuration file. The use of all parameters are shown in the following example:
+
+```yaml
+remote:
+  # location aliases for remote repositories
+  aliases:
+    bos: '{meta_repo}'
+    openwrt_feed: git://git.openwrt.org/feed
+
+  # default location for remote repositories
+  location: bos
+  # default branch for repositories
+  branch: master
+
+  # list of remote repositories
+  repos:
+    lede:
+      # use default location and branch
+      project: lede.git
+    lede-packages:
+      location: openwrt_feed
+      project: packages.git
+      branch: cd5c448758f30868770b9ebf8b656c1a4211a240
+    cgminer:
+      # use different branch for specific patform
+      match:
+        zynq-dm1:
+          project: cgminer.git
+          branch: braiins-dm1
+        zynq-am1:
+          project: cgminer.git
+          branch: braiins-am1
+```
+
+Below is a short description of supported parameters:
+
+* *aliases* - the list of URI with symbolic name which must be used in location parameter
+* *location* - the alias which represents URI of remote location (this parameter can be omitted when default location is
+  set)
+* *project* - the name of remote repository (it is concatenated with the location URI)
+* *branch* - the name of branch (this parameter can be omitted when default branch is set)
+* *match* - special syntax for platform specific configuration (the selection is based on pattern with platform prefix -
+  the longest prefix is chosen for current platform)
 
 ### Packages
 

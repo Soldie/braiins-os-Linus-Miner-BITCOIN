@@ -1,5 +1,5 @@
 miner:
-  # possible platforms are zynq-dm1-g9, zynq-dm1-g19
+  # possible platforms are zynq-dm1-g9, zynq-dm1-g19, zynq-am1-s9
   platform: zynq-dm1-g19
   # default miner MAC address
   mac: 00:0A:35:FF:FF:FF
