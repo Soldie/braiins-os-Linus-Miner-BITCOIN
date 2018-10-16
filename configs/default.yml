@@ -55,7 +55,7 @@ remote:
   # default location for remote repositories
   location: bos
   # default branch for repositories
-  branch: master
+  branch: '{meta_branch}'
   # list of remote repositories
   repos:
     lede:
@@ -88,10 +88,8 @@ remote:
       match:
         zynq-dm1:
           project: cgminer.git
-          branch: braiins-dm1
         zynq-am1:
-          project: cgminer.git
-          branch: braiins-am1
+          project: bmminer.git
     # it is possible to continue with any user repositories
 
 local:

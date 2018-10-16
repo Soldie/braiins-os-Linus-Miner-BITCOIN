@@ -284,10 +284,12 @@ class Builder:
                 """
                 repo_meta = git.Repo()
                 repo_url = repo_meta.remotes.origin.url
+                repo_branch = repo_meta.active_branch.name
                 platform = config.miner.platform
                 split_platform = builder._split_platform(platform)
                 self._format_tags = {
                     'meta_repo': repo_url.rsplit('/', 1)[0],
+                    'meta_branch': repo_branch,
                     'platform': platform,
                     'target': split_platform[0],
                     'subtarget': split_platform[1],
@@ -2093,6 +2095,10 @@ class Builder:
 
         default_location = config_remote.get('location', None)
         default_branch = config_remote.get('branch', 'master')
+
+        # default location and branch could have special symbols
+        default_location = self._config.formatter(default_location)
+        default_branch = self._config.formatter(default_branch)
 
         for name, root_attributes in config_remote.repos.items():
             root_location = root_attributes.get('location', default_location)
