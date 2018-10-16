@@ -33,6 +33,7 @@ echo RELEASE SUBTARGETS: $release_subtargets
 
 $DRY_RUN mkdir -p $RELEASE_BUILD_DIR
 $DRY_RUN cd $RELEASE_BUILD_DIR
+current_branch=$(git rev-parse --abbrev-ref HEAD)
 
 if [ $CLONE = y ]; then
     $DRY_RUN git clone $git_repo
@@ -63,10 +64,22 @@ function generate_sd_img() {
     echo sudo kpartx -d ./$sd_img
 }
 
-tag=`git tag | grep $date_and_patch_level | tail -1`
-tag_prefix=firmware_
-version=${tag#${tag_prefix}}
-$DRY_RUN git checkout $tag
+if [ "$date_and_patch_level" == "current" ]; then
+	tag=${current_branch}
+	echo "Info: checking out current branch ${tag}"
+	$DRY_RUN git checkout -B ${current_branch} origin/${current_branch}
+	version=$(date "+%s")
+else
+	tag=`git tag | grep $date_and_patch_level | tail -1`
+	if [ -z "$tag" ]; then
+		echo "Error: supplied release \"$date_and_patch_level\" not found in tags"
+		exit 4
+	else
+		tag_prefix=firmware_
+		version=${tag#${tag_prefix}}
+		$DRY_RUN git checkout $tag
+	fi
+fi
 # Iterate all releases/switch repo and build
 for subtarget in $release_subtargets; do
     # latest release
