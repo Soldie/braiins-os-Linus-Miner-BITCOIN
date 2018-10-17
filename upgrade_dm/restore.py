@@ -18,6 +18,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import argparse
+import tarfile
 import shutil
 import socket
 import errno
@@ -27,13 +28,15 @@ import os
 
 from ssh import SSHManager, SSHError
 from time import time as now
+from tempfile import TemporaryDirectory
+from glob import glob
 
 USERNAME = 'root'
 PASSWORD = None
 
 RECOVERY_MTDPARTS = 'recovery_mtdparts='
 
-REBOOT_DELAY = (3, 8)
+REBOOT_DELAY = (3, 15)
 
 
 def get_mtdpart_size(value):
@@ -107,8 +110,8 @@ def wait_for_reboot(hostname, delay):
     print()
 
 
-def main(args):
-    mtdparts_params = parse_uenv(args.backup_dir)
+def restore_from_dir(args, backup_dir):
+    mtdparts_params = parse_uenv(backup_dir)
     mtdparts = list(parse_mtdparts(mtdparts_params))
 
     if not args.sd_recovery:
@@ -127,7 +130,7 @@ def main(args):
     with SSHManager(args.hostname, USERNAME, PASSWORD, load_host_keys=False) as ssh:
         for dev, size, name in mtdparts:
             print('Restore {} ({})'.format(dev, name))
-            dump_path = os.path.join(args.backup_dir, dev + '.bin')
+            dump_path = os.path.join(backup_dir, dev + '.bin')
             with open(dump_path, "rb") as local_dump, ssh.pipe('mtd', '-e', name, 'write', '-', name) as remote_dump:
                 shutil.copyfileobj(local_dump, remote_dump.stdin)
 
@@ -141,12 +144,29 @@ def main(args):
             ssh.run('/sbin/reboot')
 
 
+def main(args):
+    if os.path.isdir(args.backup):
+        restore_from_dir(args, args.backup)
+    else:
+        with TemporaryDirectory() as backup_dir:
+            tar = tarfile.open(args.backup)
+            print('Extracting backup tarball...')
+            tar.extractall(path=backup_dir)
+            tar.close()
+            uenv_path = glob(os.path.join(backup_dir, '*', 'uEnv.txt'))
+            if not uenv_path:
+                print('Invalid backup tarball!')
+                return
+            backup_dir = os.path.split(uenv_path[0])[0]
+            restore_from_dir(args, backup_dir)
+
+
 if __name__ == "__main__":
     # execute only if run as a script
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('backup_dir',
-                        help='path to directory with data for miner restore')
+    parser.add_argument('backup',
+                        help='path to directory or tgz file with data for miner restore')
     parser.add_argument('hostname',
                         help='hostname of miner with original firmware')
     parser.add_argument('--sd-recovery', action='store_true',
