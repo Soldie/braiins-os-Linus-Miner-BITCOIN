@@ -201,8 +201,8 @@ The default configuration file is fully commented so the following list of globa
 It is possible to override each parameter specified in default configuration file with a parameters defined in a local
 file *.local.yml* stored in the root directory of the braiins build system.
 
-The structure of the local configuration is the same as default configuration file. There is usually overridden only
-platform or MAC address of target:
+The structure of the local configuration is the same as default configuration file. Typically, only platform or MAC
+address of the target are being overriden:
 
 ```yaml
 miner:
