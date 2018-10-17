@@ -95,6 +95,11 @@ fw_setenv -c "$UBOOT_ENV_CFG" stage2_mtd ${DST_STAGE2_MTD}
 fw_setenv -c "$UBOOT_ENV_CFG" ethaddr ${ETHADDR}
 fw_setenv -c "$UBOOT_ENV_CFG" miner_hwid ${MINER_HWID}
 
+# s9 specific configuration
+fw_setenv -c "$UBOOT_ENV_CFG" miner_freq ${MINER_FREQ}
+fw_setenv -c "$UBOOT_ENV_CFG" miner_voltage ${MINER_VOLTAGE}
+fw_setenv -c "$UBOOT_ENV_CFG" miner_fixed_freq ${MINER_FIXED_FREQ}
+
 echo
 echo "Content of U-Boot configuration:"
 fw_printenv -c "$UBOOT_ENV_CFG"

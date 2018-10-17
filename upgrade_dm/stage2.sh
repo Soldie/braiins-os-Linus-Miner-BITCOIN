@@ -30,6 +30,13 @@ echo "Running stage2 upgrade process..."
 ETHADDR=$(fw_printenv -n ethaddr 2> /dev/null)
 MINER_HWID=$(fw_printenv -n miner_hwid 2> /dev/null)
 
+# turn off error checking for auxiliary settings
+set +e
+MINER_FREQ=$(fw_printenv -n miner_freq 2> /dev/null)
+MINER_VOLTAGE=$(fw_printenv -n miner_voltage 2> /dev/null)
+MINER_FIXED_FREQ=$(fw_printenv -n miner_fixed_freq 2> /dev/null)
+set -e
+
 mtd_write fit.itb recovery
 mtd -n -p 0x0800000 write factory.bin.gz recovery
 mtd -n -p 0x1400000 write system.bit.gz recovery
@@ -41,6 +48,9 @@ cp "miner_cfg.config" "/etc/$FW_ENV_CFG"
 mtd_write miner_cfg.bin miner_cfg
 fw_setenv ethaddr ${ETHADDR}
 fw_setenv miner_hwid ${MINER_HWID}
+fw_setenv miner_freq ${MINER_FREQ}
+fw_setenv miner_voltage ${MINER_VOLTAGE}
+fw_setenv miner_fixed_freq ${MINER_FIXED_FREQ}
 
 # restore original fw_env.config
 cp "/tmp/$FW_ENV_CFG" "/etc"

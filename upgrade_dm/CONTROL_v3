@@ -21,6 +21,10 @@ file_size() {
 	printf "0x%x" $(stat -c "%s" "$1")
 }
 
+get_bm_config() {
+	sed -n '/"'$1'"/s/.*:[ "]*\([^ ",]*\)[ ",]*/\1/p' "/config/bmminer.conf"
+}
+
 ETHADDR=$(cat /sys/class/net/eth0/address)
 ANTMINER_VER=$(sed -n 2p /usr/bin/compile_time)
 
@@ -51,3 +55,8 @@ SRC_STAGE2_OFF=0x0A00000
 DST_STAGE2_OFF=0x3D00000
 SRC_STAGE2_MTD=2
 DST_STAGE2_MTD=8
+
+# save all local settings
+MINER_FREQ=$(get_bm_config "bitmain-freq")
+MINER_VOLTAGE=$(get_bm_config "bitmain-voltage")
+MINER_FIXED_FREQ=$(get_bm_config "fixed-freq")
