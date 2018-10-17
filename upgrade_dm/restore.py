@@ -36,7 +36,7 @@ PASSWORD = None
 
 RECOVERY_MTDPARTS = 'recovery_mtdparts='
 
-REBOOT_DELAY = (3, 15)
+REBOOT_DELAY = (3, 8)
 
 
 def get_mtdpart_size(value):
@@ -85,7 +85,7 @@ def wait_net_service(server, port, timeout=None):
             if timeout:
                 return False
         except socket.error as err:
-            if type(err.args) != tuple or err[0] != errno.ETIMEDOUT:
+            if err.errno not in (errno.ECONNABORTED, errno.ETIMEDOUT, errno.ECONNREFUSED):
                 raise
         else:
             s.close()
