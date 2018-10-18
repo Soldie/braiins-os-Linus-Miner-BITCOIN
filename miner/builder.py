@@ -36,7 +36,7 @@ from termcolor import colored
 from functools import partial
 from datetime import datetime, timezone
 from doit.tools import run_once, config_changed, check_timestamp_unchanged
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 from miner.config import ListWalker, RemoteWalker, load_config
 from miner.repo import RepoProgressPrinter
@@ -1714,7 +1714,7 @@ class Builder:
 
         if feeds_base_url:
             # appending to previous index
-            feeds_base = urlopen(feeds_base_url)
+            feeds_base = urlopen(Request(feeds_base_url, headers={'User-Agent': 'Mozilla/5.0'}))
             feeds_base = feeds_base.read().decode('utf-8')
 
         # create destination feeds index
