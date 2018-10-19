@@ -24,6 +24,7 @@ RUN apt-get update && apt-get install -y \
     texinfo
 
 RUN apt-get update && apt-get install -y \
-    device-tree-compiler
+    device-tree-compiler \
+    python3-gdbm
 
 WORKDIR /
