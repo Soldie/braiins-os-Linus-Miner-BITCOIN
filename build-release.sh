@@ -90,7 +90,6 @@ for subtarget in $release_subtargets; do
 	dm*) nand=dm_v2;;
 	*) echo Unrecognized subtarget: $subtarget; exit 2;;
     esac
-    $DRY_RUN git checkout $tag
     # We need to ensure that feeds are update
     if [ $STAGE1 = y ]; then
 	$DRY_RUN ./bb.py --platform $platform prepare
