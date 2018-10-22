@@ -4,3 +4,5 @@
 /output/
 __pycache__/
 .local.yml
+.cache
+.pybuildenv
