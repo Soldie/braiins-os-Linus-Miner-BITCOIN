@@ -23,7 +23,7 @@ release_subtargets=$@
 
 #DRY_RUN=echo
 STAGE1=y
-CLONE=y
+CLONE=n
 
 echo ID is: `id`
 echo KEY is: $key
@@ -31,16 +31,16 @@ echo RELEASE_BUILD_DIR is: $RELEASE_BUILD_DIR
 echo DATE and PATCH LEVEL: $date_and_patch_level
 echo RELEASE SUBTARGETS: $release_subtargets
 
-$DRY_RUN mkdir -p $RELEASE_BUILD_DIR
-$DRY_RUN cd $RELEASE_BUILD_DIR
 current_branch=$(git rev-parse --abbrev-ref HEAD)
 
 if [ $CLONE = y ]; then
+    $DRY_RUN mkdir -p $RELEASE_BUILD_DIR
+    $DRY_RUN cd $RELEASE_BUILD_DIR
     $DRY_RUN git clone $git_repo
+    # Prepare build environment
+    $DRY_RUN cd braiins-os
 fi
 
-# Prepare build environment
-$DRY_RUN cd braiins-os
 if [ $STAGE1 = y ]; then
     $DRY_RUN virtualenv --python=/usr/bin/python3.5 .env
 fi
