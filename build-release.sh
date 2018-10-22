@@ -33,6 +33,7 @@ echo DATE and PATCH LEVEL: $date_and_patch_level
 echo RELEASE SUBTARGETS: $release_subtargets
 
 current_branch=$(git rev-parse --abbrev-ref HEAD)
+current_commit=$(git rev-parse HEAD)
 
 if [ $CLONE = y ]; then
     $DRY_RUN mkdir -p $RELEASE_BUILD_DIR
@@ -68,10 +69,7 @@ function generate_sd_img() {
 }
 
 if [ "$date_and_patch_level" == "current" ]; then
-	tag=${current_branch}
-	echo "Info: checking out current branch ${tag}"
-	$DRY_RUN git checkout -B ${current_branch} origin/${current_branch}
-	version=$(date "+%s")
+	version=${current_branch}-$(date "+%Y%m%d-%H%M%S")
 else
 	tag=`git tag | grep $date_and_patch_level | tail -1`
 	if [ -z "$tag" ]; then
