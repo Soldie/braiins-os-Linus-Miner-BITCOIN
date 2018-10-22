@@ -24,6 +24,7 @@ release_subtargets=$@
 #DRY_RUN=echo
 STAGE1=y
 CLONE=n
+VENV=.pybuildenv
 
 echo ID is: `id`
 echo KEY is: $key
@@ -41,10 +42,12 @@ if [ $CLONE = y ]; then
     $DRY_RUN cd braiins-os
 fi
 
+rm -rf $VENV
+
 if [ $STAGE1 = y ]; then
-    $DRY_RUN virtualenv --python=/usr/bin/python3.5 .env
+    $DRY_RUN virtualenv --python=/usr/bin/python3.5 $VENV
 fi
-$DRY_RUN source .env/bin/activate
+$DRY_RUN source $VENV/bin/activate
 $DRY_RUN pip3 install -r requirements.txt
 
 
