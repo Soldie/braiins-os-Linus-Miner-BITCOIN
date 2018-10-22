@@ -6,7 +6,7 @@
 # - and generates scripts for packaging and signing the resulting build of
 #
 #
-# Synopsis: ./build-release.sh KEYRINGSECRET RELEASE SUBTARGET1 [SUBTARGET2 [SUBTARGET3...]]
+# Synopsis: ./build-release.sh KEYRINGSECRET RELEASE PACKAGEMERGE SUBTARGET1 [SUBTARGET2 [SUBTARGET3...]]
 set -e
 #
 parallel_jobs=32
@@ -18,6 +18,8 @@ feeds_url=https://feeds.braiins-os.org
 key=`realpath $1`
 shift
 date_and_patch_level=$1
+shift
+package_merge=$1
 shift
 release_subtargets=$@
 
@@ -107,14 +109,10 @@ for subtarget in $release_subtargets; do
     # Feeds deploy is specially handled as it has to merge with firmware packages
     output_dir=output
     mkdir -p $output_dir
-    packages_prev_release=$output_dir/Packages-prev-release
+    packages_url=$feeds_url/$subtarget/Packages
 
-    wget -O $packages_prev_release $feeds_url/$subtarget/Packages || {
-	echo "Downloading $packages_prev_release failed"
-    }
-
-    if [ -s $packages_prev_release ]; then
-	echo Detected existing package list from previous release for $platform merging Packages...
+    if [ "$package_merge" == "true" ]; then
+	echo Merging package list with previous release for $platform...
 	extra_feeds_opts="--feeds-base $packages_prev_release"
     else
 	echo Nothing has been published for $platform, skipping merge of Packages...
