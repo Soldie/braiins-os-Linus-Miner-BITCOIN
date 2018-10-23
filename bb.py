@@ -294,7 +294,7 @@ def main(argv):
     subparser = subparsers.add_parser('release',
                                       help="create branch with configuration for release version")
     subparser.set_defaults(func=command.release)
-    subparser.add_argument('--include', choices=['command', 'uboot', 'fpga'], nargs='*',
+    subparser.add_argument('--include', choices=['command', 'spl', 'uboot', 'fpga'], nargs='*',
                            help='components included in sysupgrade (firmware)')
     subparser.add_argument('--no-fetch', action='store_true',
                            help='do not force fetching all repositories before creating release configuration')

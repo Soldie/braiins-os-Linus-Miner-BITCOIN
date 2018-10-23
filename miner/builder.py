@@ -213,6 +213,7 @@ class Builder:
         sysupgrade = self._config.build.sysupgrade
         components = [
             ('command', 'COMMAND'),
+            ('spl', 'SPL'),
             ('uboot', 'UBOOT'),
             ('fpga', 'FPGA')
         ]
@@ -2059,7 +2060,7 @@ class Builder:
             whatsnew.write('# {}\n\n'.format(version_short))
             whatsnew.writelines(lines)
 
-    def patch_config_branches(self, config_original):
+    def patch_config_branches(self, config_original, config):
         """
         Patch original configuration with current branch hash
 
@@ -2068,6 +2069,8 @@ class Builder:
 
         :param config_original:
             Original configuration tree before changes.
+        :param config:
+            Configuration tree used for changes.
         """
         config_remote = config_original.remote
         config_aliases = config_remote.aliases
@@ -2093,7 +2096,6 @@ class Builder:
             checkout_repo(repo, name, uri, branch)
             return repo
 
-        config = copy.deepcopy(config_original)
         del config.remote.branch
 
         default_location = config_remote.get('location', None)
@@ -2123,13 +2125,6 @@ class Builder:
                 commit_sha = repo.head.object.hexsha
                 logging.debug("Set repository '{}/{}' to commit {}...".format(name, pattern, commit_sha))
                 config.remote.repos.get(name).match.get(pattern).branch = commit_sha
-
-        # always checkout all repositories to correct commit
-        config.remote.fetch_always = 'yes'
-
-        logging.info("Saving default configuration file to {}...".format(self.DEFAULT_CONFIG))
-        with open(os.path.join(self.DEFAULT_CONFIG), 'w') as default_config:
-            config.dump(default_config)
 
     def release(self, config_original):
         """
@@ -2171,8 +2166,21 @@ class Builder:
         logging.debug("Detaching head from branch...")
         repo_meta.head.reference = repo_meta.head.commit
 
+        # copy configuration for modifications
+        config = copy.deepcopy(config_original)
+
+        # always checkout all repositories to correct commit
+        config.remote.fetch_always = 'yes'
+
         logging.debug("Patching repository branches in config...")
-        self.patch_config_branches(config_original)
+        self.patch_config_branches(config_original, config)
+
+        logging.debug("Patching sysupgrade includes...")
+        config.build.sysupgrade.merge(self._config.build.sysupgrade)
+
+        logging.info("Saving default configuration file to {}...".format(self.DEFAULT_CONFIG))
+        with open(os.path.join(self.DEFAULT_CONFIG), 'w') as default_config:
+            config.dump(default_config)
 
         logging.debug("Creating new release commit...")
         repo_meta.index.add([self.DEFAULT_CONFIG])

@@ -40,6 +40,7 @@ build:
   # components included in sysupgrade (firmware)
   sysupgrade:
     command: no
+    spl: no
     uboot: no
     fpga: no
 
