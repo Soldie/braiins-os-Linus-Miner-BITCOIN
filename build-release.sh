@@ -111,7 +111,7 @@ for subtarget in $release_subtargets; do
 
     if [ "$package_merge" == "true" ]; then
 	echo Merging package list with previous release for $platform...
-	extra_feeds_opts="--feeds-base $packages_prev_release"
+	extra_feeds_opts="--feeds-base $packages_url"
     else
 	echo Nothing has been published for $platform, skipping merge of Packages...
 	extra_feeds_opts=
