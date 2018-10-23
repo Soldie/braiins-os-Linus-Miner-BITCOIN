@@ -1,2 +1,2 @@
 progress==1.2
-Paramiko==2.0
+Paramiko==2.4.2
