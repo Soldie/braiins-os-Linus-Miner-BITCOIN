@@ -5,7 +5,7 @@
 ## Antminer S9
 
 - [feature] bmminer now supports overt **AsicBoost** via version rolling, latest bitstream from Bitmain
-  has been integrated and [BIP310](https://github.com/bitcoin/bips/blob/master/bip-0310.mediawiki) support has been enabled. AsicBoost can be turned on/off in the interface.
+  has been integrated and [BIP310](https://github.com/bitcoin/bips/blob/master/bip-0310.mediawiki) support has been enabled. AsicBoost can be turned off in the interface.
 - [feature] the transitional firmware now supports **flashing Antminers S9** in addition to originally supported S9i
 - [feature] **per chain** frequency and **voltage control** now available in the interface
 - [fix] Temperature reporting has been corrected to take measurements from
