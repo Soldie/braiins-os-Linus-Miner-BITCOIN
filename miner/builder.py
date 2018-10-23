@@ -284,17 +284,20 @@ class Builder:
                 """
                 repo_meta = git.Repo()
                 repo_url = repo_meta.remotes.origin.url
-                repo_branch = repo_meta.active_branch.name
+
                 platform = config.miner.platform
                 split_platform = builder._split_platform(platform)
                 self._format_tags = {
                     'meta_repo': repo_url.rsplit('/', 1)[0],
-                    'meta_branch': repo_branch,
                     'platform': platform,
                     'target': split_platform[0],
                     'subtarget': split_platform[1],
                     'subtarget_family': split_platform[1].split('-')[0]
                 }
+                # meta_branch cannot be used when repository is detached
+                if not repo_meta.head.is_detached:
+                    repo_branch = repo_meta.active_branch.name
+                    self._format_tags['meta_branch'] = repo_branch
 
             def add_tag(self, name, value):
                 """
