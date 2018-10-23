@@ -214,4 +214,4 @@ if __name__ == "__main__":
     except SSHError as e:
         print(str(e))
     except UpgradeStop:
-        pass
+        sys.exit(1)
