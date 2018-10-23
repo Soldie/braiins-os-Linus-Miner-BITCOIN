@@ -1,29 +1,20 @@
-## Antminer
+*This release only contains images for Antminer S9.*
 
-- bmminer now supports overt Asic Boost via version rolling, latest bitstream from Bitmain
-  has been integrated and BIP310 support has been enabled
+**Important:** If you wish to upgrade firmware (package `firmware`) via the web interface, it is neccesary to install package `libustream-openssl` first. This step is not required when upgrading via SSH.
 
-- LUCI interface
-  - new option to enable Asic Boost
-  - provide a way to configure par chain frequencies and voltages
+## Antminer S9
 
-- temperature reporting has been corrected to take measurements from
+- [feature] bmminer now supports overt **AsicBoost** via version rolling, latest bitstream from Bitmain
+  has been integrated and [BIP310](https://github.com/bitcoin/bips/blob/master/bip-0310.mediawiki) support has been enabled. AsicBoost can be turned on/off in the interface.
+- [feature] the transitional firmware now supports **flashing Antminers S9** in addition to originally supported S9i
+- [feature] **per chain** frequency and **voltage control** now available in the interface
+- [fix] Temperature reporting has been corrected to take measurements from
   the 'middle' sensor that is placed in the hot area of each
   hashboard. The displayed temperatures should better reflect the true
   temperature of the hashboard.
 
-# 2018-09-22-0
-
-## Antminer
-- the transitional firmware now supports flashing Antminers S9 in addition to originally supported S9i
-
-### Voltage Control
-- web miner configuration interface now allows setting global voltage
-  for all chains along with frequency.
-
 ## All hardware types
 
-- package list update triggered via web UI doesn't report missing SSL
-support error anymore
-
-- opkg no longer reports errors about missing feeds due to an attempt to fetch
+- [fix] package list update triggered via web UI doesn't report missing SSL support error anymore
+- [fix] opkg no longer reports errors about missing feeds due to an attempt to fetch
+- [fix] Firmware reports its real release version during stratum subscribe. The default cgminer version has been removed.
