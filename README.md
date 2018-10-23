@@ -612,6 +612,26 @@ You have to get login information for *root* access over *telnet* (v1) or *ssh* 
 you start the upgrade process. Without this information you have to open your miner and use SD version for boot and
 deploy this firmware with the braiins build *deploy* command with *nand* target.
 
+## Building Firmware Images in Docker
+
+The description below shows how to build firmware images generating all local targets (feeds, SD card image and
+transitional firmware images).
+
+- prepare a docker container with all tools:
+
+```
+./docker/build-docker-container.sh
+```
+
+- run the development build for selected targets. The example below runs a full build for all supported mining devices
+  for the current revision of the **braiins-os** release. Also, it assumes that you have prepared your build key as
+  specified above.
+
+```
+./docker/build-release-in-docker.sh ./key/secret current false am1-s9 dm1-g9 dm1-g19
+```
+
+
 ## Authors
 
 * **Libor Vašíček** - *Initial work*
