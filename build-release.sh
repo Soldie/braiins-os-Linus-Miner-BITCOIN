@@ -47,9 +47,7 @@ fi
 
 rm -rf $VENV
 
-if [ $STAGE1 = y ]; then
-    $DRY_RUN virtualenv --python=/usr/bin/python3.5 $VENV
-fi
+$DRY_RUN virtualenv --python=/usr/bin/python3.5 $VENV
 $DRY_RUN source $VENV/bin/activate
 $DRY_RUN pip3 install -r requirements.txt
 
@@ -97,9 +95,9 @@ for subtarget in $release_subtargets; do
     if [ $STAGE1 = y ]; then
 	$DRY_RUN ./bb.py --platform $platform prepare
 	$DRY_RUN ./bb.py --platform $platform prepare --update-feeds
+	# build everything for a particular platform
+	$DRY_RUN ./bb.py --platform $platform build --key $key -j$parallel_jobs -v
     fi
-    # build everything for a particular platform
-    $DRY_RUN ./bb.py --platform $platform build --key $key -j$parallel_jobs -v
 
     # Deploy SD and NAND images
     for i in sd nand_$nand; do
