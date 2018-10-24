@@ -39,28 +39,27 @@ build:
     cgminer: package/utils/cgminer
   # components included in sysupgrade (firmware)
   sysupgrade:
-    command: no
-    spl: no
+    command: yes
+    spl: yes
     uboot: no
-    fpga: no
+    fpga: yes
 
 remote:
   # default configuration for fetching latest repository
   fetch: no
   # always fetch each repositories (it cannot be overridden)
-  fetch_always: no
+  fetch_always: yes
   # location aliases for remote repositories
   aliases:
     bos: '{meta_repo}'
     openwrt_feed: git://git.openwrt.org/feed
   # default location for remote repositories
   location: bos
-  # default branch for repositories
-  branch: '{meta_branch}'
   # list of remote repositories
   repos:
     lede:
       project: lede.git
+      branch: 7035e3217ce282736a105c4035ff52fc4b920d5e
     lede-packages:
       location: openwrt_feed
       project: packages.git
@@ -75,22 +74,29 @@ remote:
       branch: ac6415e61f147a6892fd2785337aec93ddc68fa9
     luci:
       project: luci.git
+      branch: d87b0c82000cea58ead42ed036620c275ce0bbb9
     miner-feeds:
       project: braiins-os-feeds.git
+      branch: f9944829e7d831451e7181a160aed6c0a16e69d1
     platform:
       match:
         zynq:
           project: zynq-io-bin.git
+          branch: 57a16d7f69f997ce449eebff2cdd1a050d97ef62
     u-boot:
       project: u-boot-xlnx.git
+      branch: 1b07706512b61a32f1a0bfeaa252882e131fdd43
     linux:
       project: linux-xlnx.git
+      branch: 5c7743c07f0e53a2e56ed70168cee1133e4cdbc1
     cgminer:
       match:
         zynq-dm1:
           project: cgminer.git
+          branch: 791b264b5597319a099cb3c395325bfced83e181
         zynq-am1:
           project: bmminer.git
+          branch: a150049aa341e29c540b71bef93a54b0c9c72580
     # it is possible to continue with any user repositories
 
 local:
