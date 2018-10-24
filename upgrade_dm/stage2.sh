@@ -40,6 +40,7 @@ set -e
 mtd_write fit.itb recovery
 mtd -n -p 0x0800000 write factory.bin.gz recovery
 mtd -n -p 0x1400000 write system.bit.gz recovery
+mtd -n -p 0x1500000 write boot.bin.gz recovery
 
 # backup and change original fw_env.config
 cp "/etc/$FW_ENV_CFG" "/tmp"

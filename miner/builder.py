@@ -1198,6 +1198,11 @@ class Builder:
                      .format(os.path.basename(local), mtd_name))
         self._mtd_write(ssh, local, mtd_name, offset=0x1400000, compress=True, erase=False)
 
+        local = image.boot
+        logging.info("Writing '{}' to NAND partition '{}'..."
+                     .format(os.path.basename(local), mtd_name))
+        self._mtd_write(ssh, local, mtd_name, offset=0x1500000, compress=True, erase=False)
+
     def _deploy_ssh_nand(self, ssh, image):
         """
         Deploy image to the NAND over SSH connection
@@ -1522,6 +1527,7 @@ class Builder:
         tar.add(image.kernel_recovery, arcname='fit.itb')
 
         # add compressed system.bin and factory.bin
+        self._add2tar_compressed_file(tar, image.boot, 'boot.bin.gz')
         self._add2tar_compressed_file(tar, image.fpga, 'system.bit.gz')
         self._add2tar_compressed_file(tar, image.factory, 'factory.bin.gz')
 
