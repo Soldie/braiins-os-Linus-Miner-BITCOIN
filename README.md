@@ -624,11 +624,11 @@ transitional firmware images).
 ```
 
 - run the development build for selected targets. The example below runs a full build for all supported mining devices
-  for the current revision of the **braiins-os** release. Also, it assumes that you have prepared your build key as
-  specified above.
+  for the current revision of the **braiins-os** release using a test signature key. The 'false' value indicates that
+  the created **Packages** list will not be merged with the current release.
 
 ```
-./docker/build-release-in-docker.sh ./key/secret current false am1-s9 dm1-g9 dm1-g19
+./docker/build-release-in-docker.sh ./keys/test current false am1-s9 dm1-g9 dm1-g19
 ```
 
 
