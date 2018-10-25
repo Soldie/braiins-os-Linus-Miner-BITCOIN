@@ -2149,6 +2149,14 @@ class Builder:
         """
         repo_meta = git.Repo()
 
+        if repo_meta.head.is_detached:
+            logging.error("Meta repository is detached!")
+            raise BuilderStop
+
+        # save active branch to return back after creating release
+        meta_active_branch = repo_meta.active_branch
+        branch_name = meta_active_branch.name
+
         if repo_meta.is_dirty(untracked_files=True):
             logging.error("Meta repository is dirty!")
             raise BuilderStop
@@ -2158,8 +2166,14 @@ class Builder:
                 logging.error("Repository '{}' is dirty!".format(name))
                 raise BuilderStop
 
-        # save active branch to return back after creating release
-        meta_active_branch = repo_meta.active_branch
+        # synchronise upstream repository with local one (fetch all tags)
+        logging.debug("Fetching remote repository...")
+        repo_meta.remotes.origin.fetch()
+
+        commits_ahead, commits_behind = self._count_commits(repo_meta, branch_name)
+        if commits_ahead or commits_behind:
+            logging.error("Your branch and 'origin/{}' have diverged,".format(branch_name))
+            raise BuilderStop
 
         # get short version for 'whatsnew.md' header
         fw_version_short = self._get_firmware_version(short=True, local_time=True)
@@ -2168,9 +2182,6 @@ class Builder:
         # create commit with patched whatsnew file
         repo_meta.index.add([self.WHATS_NEW])
         repo_meta.index.commit(self.WHATS_NEW_COMMENT)
-
-        logging.debug("Fetching all tags from remote repository...")
-        repo_meta.remotes.origin.fetch()
 
         logging.debug("Detaching head from branch...")
         repo_meta.head.reference = repo_meta.head.commit
