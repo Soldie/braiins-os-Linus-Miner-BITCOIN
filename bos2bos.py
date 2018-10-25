@@ -67,8 +67,9 @@ def firmware_deploy(args, firmware_dir, stage2_dir):
     boot_bin = os.path.join(firmware_dir, 'boot.bin')
     uboot_img = os.path.join(firmware_dir, 'u-boot.img')
     fit_itb = os.path.join(stage2_dir, 'fit.itb')
-    factory_bin = os.path.join(stage2_dir, 'factory.bin.gz')
-    system_bit = os.path.join(stage2_dir, 'system.bit.gz')
+    factory_bin_gz = os.path.join(stage2_dir, 'factory.bin.gz')
+    system_bit_gz = os.path.join(stage2_dir, 'system.bit.gz')
+    boot_bin_gz = os.path.join(stage2_dir, 'boot.bin.gz')
     miner_cfg_bin = os.path.join(stage2_dir, 'miner_cfg.bin')
     miner_cfg_config = os.path.join(stage2_dir, 'miner_cfg.config')
 
@@ -77,8 +78,11 @@ def firmware_deploy(args, firmware_dir, stage2_dir):
         mdt_write(ssh, boot_bin, 'boot', 'SPL')
         mdt_write(ssh, uboot_img, 'uboot', 'U-Boot')
         mdt_write(ssh, fit_itb, 'recovery', 'recovery FIT image')
-        mdt_write(ssh, factory_bin, 'recovery', 'factory image', erase=False, offset=0x0800000)
-        mdt_write(ssh, system_bit, 'recovery', 'bitstream', erase=False, offset=0x1400000)
+        mdt_write(ssh, factory_bin_gz, 'recovery', 'factory image', erase=False, offset=0x0800000)
+        mdt_write(ssh, system_bit_gz, 'recovery', 'bitstream', erase=False, offset=0x1400000)
+        # original firmware has different recovery partition without SPL bootloader
+        if os.path.isfile(boot_bin_gz):
+            mdt_write(ssh, boot_bin_gz, 'recovery', 'SPL bootloader', erase=False, offset=0x1500000)
         mdt_write(ssh, miner_cfg_bin, 'miner_cfg', 'miner configuration')
 
         print("Uploading miner configuration file...")
