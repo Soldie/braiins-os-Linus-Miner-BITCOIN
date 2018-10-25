@@ -197,7 +197,7 @@ class CommandManager:
 
         config_original = miner.load_config(self._args.config)
         builder = self.get_builder()
-        builder.release(config_original)
+        builder.release(config_original, push=not self._args.no_push)
 
     def key(self):
         logging.debug("Called command 'key'")
@@ -298,6 +298,8 @@ def main(argv):
                            help='components included in sysupgrade (firmware)')
     subparser.add_argument('--no-fetch', action='store_true',
                            help='do not force fetching all repositories before creating release configuration')
+    subparser.add_argument('--no-push', action='store_true',
+                           help='do not push changes to upstream')
 
     # create the parser for the "key" command
     subparser = subparsers.add_parser('key',

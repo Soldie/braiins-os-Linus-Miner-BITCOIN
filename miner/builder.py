@@ -76,6 +76,7 @@ class Builder:
     """
     DEFAULT_CONFIG = os.path.join('configs', 'default.yml')
     WHATS_NEW = 'whatsnew.md'
+    WHATS_NEW_COMMENT = "Create version header for '{}'".format(WHATS_NEW)
 
     LEDE_META_DIR = 'miner'
     LEDE_META_SSH = 'ssh.py'
@@ -2132,7 +2133,7 @@ class Builder:
                 logging.debug("Set repository '{}/{}' to commit {}...".format(name, pattern, commit_sha))
                 config.remote.repos.get(name).match.get(pattern).branch = commit_sha
 
-    def release(self, config_original):
+    def release(self, config_original, push=True):
         """
         Create release branch in git based on current configuration
 
@@ -2143,15 +2144,17 @@ class Builder:
 
         :param config_original:
             Original configuration tree before changes.
+        :param push:
+            Push all changes to upstream.
         """
         repo_meta = git.Repo()
 
-        if repo_meta.is_dirty():
+        if repo_meta.is_dirty(untracked_files=True):
             logging.error("Meta repository is dirty!")
             raise BuilderStop
 
         for name, repo in self._repos.items():
-            if repo and repo.is_dirty():
+            if repo and repo.is_dirty(untracked_files=True):
                 logging.error("Repository '{}' is dirty!".format(name))
                 raise BuilderStop
 
@@ -2164,7 +2167,7 @@ class Builder:
 
         # create commit with patched whatsnew file
         repo_meta.index.add([self.WHATS_NEW])
-        repo_meta.index.commit("Create version header for '{}'".format(self.WHATS_NEW))
+        repo_meta.index.commit(self.WHATS_NEW_COMMENT)
 
         logging.debug("Fetching all tags from remote repository...")
         repo_meta.remotes.origin.fetch()
@@ -2206,11 +2209,13 @@ class Builder:
 
         logging.info("Creating new release tag '{}'...".format(fw_version))
         repo_meta.create_tag(fw_version)
-        repo_meta.remotes.origin.push(fw_version)
+        if push:
+            repo_meta.remotes.origin.push(fw_version)
 
         # return back to active branch
         meta_active_branch.checkout()
-        repo_meta.remotes.origin.push()
+        if push:
+            repo_meta.remotes.origin.push()
 
     def generate_key(self, secret_path, public_path):
         """
