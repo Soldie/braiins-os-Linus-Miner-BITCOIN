@@ -196,7 +196,7 @@ class CommandManager:
             self._config.remote.fetch_always = 'yes'
 
         config_original = miner.load_config(self._args.config)
-        builder = self.get_builder()
+        builder = self.get_builder('checkout')
         builder.release(config_original, push=not self._args.no_push)
 
     def key(self):

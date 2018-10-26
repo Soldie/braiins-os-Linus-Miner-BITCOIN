@@ -548,15 +548,17 @@ class Builder:
         """
         name = remote.name
         path = self._get_repo_path(name)
+        repo = self._repos[name]
 
         yield {
             'name': name,
-            'uptodate': [self._repos[name] is not None,
+            'uptodate': [config_changed(repo.remotes.origin.url if repo else ''),
                          config_changed(remote.uri)]
         }
 
         repo = self._repos[name]
-        if repo and (repo.is_dirty(untracked_files=True) or self._count_commits(repo)[0] != 0):
+        if repo and (repo.is_dirty(untracked_files=True) or
+                     (not repo.head.is_detached and self._count_commits(repo)[0] != 0)):
             # old repo exists and should not be removed when there are changes
             logging.error("URI of repository '{}' has changed but new repository cannot be fetched due to local changes"
                           .format(name))
