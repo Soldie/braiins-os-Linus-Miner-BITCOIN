@@ -37,12 +37,11 @@ build:
   aliases:
     kernel: target/linux
     cgminer: package/utils/cgminer
-  # components included in sysupgrade (firmware)
+  # components included in sysupgrade (firmware) for specific platform
+  # supported components: command, spl, uboot, fpga
   sysupgrade:
-    command: no
-    spl: no
-    uboot: no
-    fpga: no
+    zynq-dm1: [command]
+    zynq-am1: [command, spl, fpga]
 
 remote:
   # default configuration for fetching latest repository

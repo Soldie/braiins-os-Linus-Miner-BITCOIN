@@ -187,10 +187,6 @@ class CommandManager:
 
     def release(self):
         logging.debug("Called command 'release'")
-        sysupgrade = self._config.build.sysupgrade
-        for include in set(self._args.include or []):
-            setattr(sysupgrade, include, 'yes')
-
         if not self._args.no_fetch:
             # always fetch all repositories before creating release
             self._config.remote.fetch_always = 'yes'
@@ -294,8 +290,6 @@ def main(argv):
     subparser = subparsers.add_parser('release',
                                       help="create branch with configuration for release version")
     subparser.set_defaults(func=command.release)
-    subparser.add_argument('--include', choices=['command', 'spl', 'uboot', 'fpga'], nargs='*',
-                           help='components included in sysupgrade (firmware)')
     subparser.add_argument('--no-fetch', action='store_true',
                            help='do not force fetching all repositories before creating release configuration')
     subparser.add_argument('--no-push', action='store_true',

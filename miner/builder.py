@@ -219,8 +219,12 @@ class Builder:
             ('fpga', 'FPGA')
         ]
 
+        # find includes for current platform with prefix pattern
+        includes = next((value for pattern, value in sorted(sysupgrade.items(), reverse=True)
+                         if self._config.miner.platform.startswith(pattern)), None)
+
         for src_name, dst_name in components:
-            if sysupgrade.get(src_name) == 'yes':
+            if src_name in includes:
                 stream.write('{}{}=y\n'.format(config, dst_name))
 
     def _write_firmware_version(self, stream, config):
@@ -2196,9 +2200,6 @@ class Builder:
 
         logging.debug("Patching repository branches in config...")
         self.patch_config_branches(config_original, config)
-
-        logging.debug("Patching sysupgrade includes...")
-        config.build.sysupgrade.merge(self._config.build.sysupgrade)
 
         logging.info("Saving default configuration file to {}...".format(self.DEFAULT_CONFIG))
         with open(os.path.join(self.DEFAULT_CONFIG), 'w') as default_config:
