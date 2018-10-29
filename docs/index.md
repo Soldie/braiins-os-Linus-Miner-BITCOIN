@@ -26,7 +26,7 @@ Due to aforementioned reasons, it is higly recommended to install braiins OS fir
 You will need:
 
 * supported ASIC miner (see the list below)
-* computer with Linux (this guide is tailored for Linux, however, the procedure should be fairly similar on Windows or macOS)
+* computer with Linux or Windows
 * SD card (optional but recommended method)
 
 *Note: Commands used in this manual are instructional. You might need to adjust file paths and names adequately.*
@@ -59,7 +59,7 @@ gpg: Signature made Sat 22 Sep 2018 02:27:03 PM CEST using RSA key ID 616D9548
 gpg: Good signature from "Braiins Systems Release Key (Key used for signing software made by Braiins Systems) <release@braiins.cz>" [ultimate]
 ```
 
-Unpack the firmware image:
+Unpack the firmware image using standard file archiver software (e.g. 7-Zip, WinRAR) or the folllowing command (Linux):
 
 ```bash
 for i in  ./braiins-os-firmware_*.tar.bz2; do tar xvjf $i; done
@@ -70,7 +70,19 @@ The downloaded firmware image contains SD card components as well has a transiti
 
 # Method 1: Creating bootable SD card image  (Antminer S9i example)
 
-Insert an empty SD card into your reader and identify its block device (e.g. by ```lsblk```). You need an SD card with minimum capacity of 32 MB.
+Insert an empty SD card (with minimum capacity of 32 MB) into your computer and flash the image onto the SD card.
+
+### Using software with GUI (Windows, Linux)
+
+* [Download](https://etcher.io/) and run Etcher
+* Select the sd.img image
+* Select drive (SD card)
+* Copy the image to SD card by clicking on *Flash!*
+
+
+### Using bash (Linux)
+
+Identify SD cards block device (e.g. by ```lsblk```) and run the following commands:
 
 ```
 cd braiins-os-firmware_am1-s9-latest;
@@ -95,7 +107,9 @@ If you know the MAC address of your device, mount the SD card and adjust the MAC
 Once the SD card works, it is very safe to attempt flashing the built-in flash memory as there will always be a way to recover the factory firmware.
 Follow the steps below. The tool creates a backup of the original firmware in the ```backup``` folder. It is important to **keep the backup safe** to resolve any potential future issues.
 
-Below are steps to replace original factory firmware with braiins OS. The tool attempts to login to the machine via SSH, therefore you maybe prompted for a password.
+Below are commands to replace original factory firmware with braiins OS. The tool attempts to login to the machine via SSH, therefore you maybe prompted for a password.
+
+## Using Linux
 
 ```bash
 cd braiins-os-firmware_am1-s9-latest/factory-transition
@@ -106,11 +120,44 @@ pip install -r ./requirements.txt
 python3 upgrade2bos.py your-miner-hostname-or-ip
 ```
 
+## Using Windows
+
+Please install Python first [following this guide](python-win). Then proceed to run the following commands consecutively:
+
+```bash
+cd braiins-os-firmware_am1-s9-latest/factory-transition
+mkvirtualenv bos
+setprojectdir .
+pip install -r requirements.txt
+
+python upgrade2bos.py your-miner-hostname-or-ip
+deactivate
+```
+
+# AsicBoost support
+
+Braiins OS supports overt (version-rolling) AsicBoost in accordance with BIP310.
+
+Trying to use AsicBoost on pool that is not supporting it will result in error message (device will not start mining at all).
+
+## Antminer S9
+
+AsicBoost is **turned on by default** and can be turned off in the Services > CGMiner settings.
+
+Please note there is no automatic detection present at the moment, meaning AsicBoost can be only turned on/off manualy.
+
+## DragonMint T1
+
+AsicBoost is turned on by default **cannot be turned off**. The device is incapable of mining efficiently without AsicBoost.
+
+
 # Maintenance & troubleshooting
 
 ## Migrating from braiins OS to factory firmware
 
 Restoring the original factory firmware requires issuing the command below. Please, note that the previously created backup needs to be available.
+
+- Run (*on Windows, use `python` command instead of `python3`.*):
 
 ```bash
 python3 restore2factory.py backup/backup-id-date/ your-miner-hostname-or-ip
@@ -121,7 +168,7 @@ python3 restore2factory.py backup/backup-id-date/ your-miner-hostname-or-ip
 If anything goes wrong and your device seems unbootable, you can use the previously created SD card image to recover it (flash the manufacturer’s firmware to the built-in flash memory):
 
 - Follow the steps in *Creating bootable SD card image* to boot the device
-- Run:
+- Run (*on Windows, use `python` command instead of `python3`.*):
 ```
 cd braiins-os-firmware_am1-s9-latest/factory-transition
 python3 restore.py --sd-recovery backup/2ce9c4aab53c-2018-09-19/ your-miner-hostname-or-ip
@@ -131,7 +178,13 @@ After the script finishes, wait a few minutes and adjust jumper to boot from NAN
 
 ## Firmware upgrade
 
-Firmware upgrade process uses standard mechanism for installing/upgrading software packages within any OpenWrt based system. Follow the steps below to perform firmware upgrade:
+Firmware upgrade process uses standard mechanism for installing/upgrading software packages within any OpenWrt based system. Follow the steps below to perform firmware upgrade.
+
+### Upgrade via web interface
+
+Update the repository information by clicking on *Update lists* button in the System > Software menu. In case the button is missing, the system has to be rebooted!
+
+### Upgrade via SSH
 
 ```bash
 # download latest packages from feeds server
