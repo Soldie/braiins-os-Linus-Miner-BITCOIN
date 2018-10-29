@@ -1,12 +1,11 @@
 # Table of contents
 
 - [Overview](#overview)
-- [Common steps](#common-steps)
+- [Initial steps](#initial-steps)
 - [Method 1: Creating bootable SD card image  (Antminer S9i example)](#method-1--creating-bootable-sd-card-image---antminer-s9i-example-)
-  * [Adjusting MAC address](#adjusting-mac-address)
-  * [Booting the device from SD card](#booting-the-device-from-sd-card)
 - [Method 2: Migrating from factory firmware to braiins OS](#method-2--migrating-from-factory-firmware-to-braiins-os)
-- [Maintenance & troubleshooting](#maintenance---troubleshooting)
+- [Basic user's guide](#basic-user-s-guide)
+  * [AsicBoost support](#asicboost-support)
   * [Migrating from braiins OS to factory firmware](#migrating-from-braiins-os-to-factory-firmware)
   * [Recovering bricked (unbootable) devices using SD card](#recovering-bricked--unbootable--devices-using-sd-card)
   * [Firmware upgrade](#firmware-upgrade)
@@ -31,7 +30,7 @@ You will need:
 
 *Note: Commands used in this manual are instructional. You might need to adjust file paths and names adequately.*
 
-# Common steps
+# Initial steps
 
 Download the latest released firmware images + signatures from: [https://feeds.braiins-os.org/](https://feeds.braiins-os.org/)
 
@@ -134,24 +133,17 @@ python upgrade2bos.py your-miner-hostname-or-ip
 deactivate
 ```
 
-# AsicBoost support
+# Basic user's guide
 
-Braiins OS supports overt (version-rolling) AsicBoost in accordance with BIP310.
+## AsicBoost support
 
-Trying to use AsicBoost on pool that is not supporting it will result in error message (device will not start mining at all).
+Braiins OS supports overt (version-rolling) AsicBoost in accordance with [BIP310](https://github.com/bitcoin/bips/blob/master/bip-0310.mediawiki).
 
-## Antminer S9
+Trying to use AsicBoost on pool that is not supporting it will result in error message (device will not start mining at all). Please note there is no automatic detection present at the moment, meaning AsicBoost can be only turned on/off manualy.
 
-AsicBoost is **turned on by default** and can be turned off in the Services > CGMiner settings.
+**Antminer S9**: AsicBoost is **turned on by default** and can be turned off in the Services > CGMiner settings.
 
-Please note there is no automatic detection present at the moment, meaning AsicBoost can be only turned on/off manualy.
-
-## DragonMint T1
-
-AsicBoost is turned on by default and **cannot be turned off**. The device is incapable of mining efficiently without AsicBoost.
-
-
-# Maintenance & troubleshooting
+**DragonMint T1**: AsicBoost is turned on by default and **cannot be turned off**. The device is incapable of mining efficiently without AsicBoost.
 
 ## Migrating from braiins OS to factory firmware
 
