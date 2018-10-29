@@ -148,7 +148,7 @@ Please note there is no automatic detection present at the moment, meaning AsicB
 
 ## DragonMint T1
 
-AsicBoost is turned on by default **cannot be turned off**. The device is incapable of mining efficiently without AsicBoost.
+AsicBoost is turned on by default and **cannot be turned off**. The device is incapable of mining efficiently without AsicBoost.
 
 
 # Maintenance & troubleshooting
@@ -157,7 +157,7 @@ AsicBoost is turned on by default **cannot be turned off**. The device is incapa
 
 Restoring the original factory firmware requires issuing the command below. Please, note that the previously created backup needs to be available.
 
-- Run (*on Windows, use `python` command instead of `python3`.*):
+- Run (*on Windows, use `python` command instead of `python3`*):
 
 ```bash
 python3 restore2factory.py backup/backup-id-date/ your-miner-hostname-or-ip
@@ -168,7 +168,7 @@ python3 restore2factory.py backup/backup-id-date/ your-miner-hostname-or-ip
 If anything goes wrong and your device seems unbootable, you can use the previously created SD card image to recover it (flash the manufacturer’s firmware to the built-in flash memory):
 
 - Follow the steps in *Creating bootable SD card image* to boot the device
-- Run (*on Windows, use `python` command instead of `python3`.*):
+- Run (*on Windows, use `python` command instead of `python3`*):
 ```
 cd braiins-os-firmware_am1-s9-latest/factory-transition
 python3 restore.py --sd-recovery backup/2ce9c4aab53c-2018-09-19/ your-miner-hostname-or-ip
