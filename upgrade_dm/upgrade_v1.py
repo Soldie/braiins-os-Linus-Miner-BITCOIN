@@ -22,9 +22,10 @@ import telnetlib
 import tarfile
 import socket
 import time
-import hwid
 import sys
 import io
+
+import upgrade.hwid as hwid
 
 from functools import partial
 from progress.bar import Bar

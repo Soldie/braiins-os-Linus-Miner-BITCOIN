@@ -127,9 +127,16 @@ class Builder:
     DM_UBOOT_ENV_SRC = 'uboot_env.txt'
     DM_MINER_CFG = 'miner_cfg.bin'
     DM_MINER_CFG_CONFIG = 'miner_cfg.config'
+    DM_INIT_SCRIPT_SRC = '__init__.py'
     DM_UPGRADE_SCRIPT_SRC = 'upgrade_v{version}.py'
+    DM_PLATFORM_SCRIPT_SRC = os.path.join('dm1', 'platform.py')
+    AM_PLATFORM_SCRIPT_SRC = os.path.join('am1', 'platform.py')
+    DM_BACKUP_SCRIPT_SRC = 'backup.py'
     DM_RESTORE_SCRIPT_SRC = 'restore.py'
+    DM_INIT_SCRIPT = '__init__.py'
     DM_UPGRADE_SCRIPT = 'upgrade2bos.py'
+    DM_PLATFORM_SCRIPT = 'platform.py'
+    DM_BACKUP_SCRIPT = 'backup.py'
     DM_RESTORE_SCRIPT = 'restore2factory.py'
     DM_SCRIPT_REQUIREMENTS_SRC = 'requirements_v{version}.txt'
     DM_SCRIPT_REQUIREMENTS = 'requirements.txt'
@@ -1622,13 +1629,11 @@ class Builder:
         # change to original target directory
         upload_manager.target_dir = target_dir
 
-        # copy upgrade script for deployment
-        if version in [2, 3]:
-            ssh = self._get_project_file(self.LEDE_META_DIR, self.LEDE_META_SSH)
-            upload_manager.put(ssh, self.LEDE_META_SSH)
-
-        # copy U-Boot env tools
-        if version == 3:
+        platform = None
+        if version == 2:
+            platform = self._get_project_file(self.DM_DIR, self.DM_PLATFORM_SCRIPT_SRC)
+        elif version == 3:
+            # copy system dependencies
             upload_manager.target_dir = os.path.join(target_dir, 'system')
             os.makedirs(upload_manager.target_dir, exist_ok=True)
             build_dir = os.path.join(self._working_dir, 'build_dir', 'target-arm_cortex-a9+neon_musl-1.1.16_eabi')
@@ -1640,12 +1645,33 @@ class Builder:
                                             'usr', 'sbin', 'fw_printenv'), 'fw_printenv')
             upload_manager.target_dir = target_dir
 
-        ssh = self._get_project_file(self.LEDE_META_DIR, self.LEDE_META_HWID)
-        upload_manager.put(ssh, self.LEDE_META_HWID)
+            platform = self._get_project_file(self.DM_DIR, self.AM_PLATFORM_SCRIPT_SRC)
+
+        hwid = self._get_project_file(self.LEDE_META_DIR, self.LEDE_META_HWID)
+        ssh = self._get_project_file(self.LEDE_META_DIR, self.LEDE_META_SSH) if version in [2, 3] else None
+
+        init = self._get_project_file(self.DM_DIR, self.DM_INIT_SCRIPT_SRC)
+        backup = self._get_project_file(self.DM_DIR, self.DM_BACKUP_SCRIPT_SRC) if version in [2, 3] else None
+
         upgrade_ver = version if version != 3 else 2
+        restore = self._get_project_file(self.DM_DIR, self.DM_RESTORE_SCRIPT_SRC)
         upgrade = self._get_project_file(self.DM_DIR, self.DM_UPGRADE_SCRIPT_SRC.format(version=upgrade_ver))
         requirements = self._get_project_file(self.DM_DIR, self.DM_SCRIPT_REQUIREMENTS_SRC.format(version=upgrade_ver))
-        restore = self._get_project_file(self.DM_DIR, self.DM_RESTORE_SCRIPT_SRC)
+
+        # copy upgrade modules
+        upload_manager.target_dir = os.path.join(target_dir, 'upgrade')
+        os.makedirs(upload_manager.target_dir, exist_ok=True)
+        upload_manager.put(init, self.DM_INIT_SCRIPT)
+        if platform:
+            upload_manager.put(platform, self.DM_PLATFORM_SCRIPT)
+        if ssh:
+            upload_manager.put(ssh, self.LEDE_META_SSH)
+        if backup:
+            upload_manager.put(backup, self.DM_BACKUP_SCRIPT)
+        upload_manager.put(hwid, self.LEDE_META_HWID)
+        upload_manager.target_dir = target_dir
+
+        # copy main scripts
         upload_manager.put(restore, self.DM_RESTORE_SCRIPT)
         upload_manager.put(upgrade, self.DM_UPGRADE_SCRIPT)
         upload_manager.put(requirements, self.DM_SCRIPT_REQUIREMENTS)

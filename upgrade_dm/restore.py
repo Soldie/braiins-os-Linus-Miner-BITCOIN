@@ -26,7 +26,7 @@ import time
 import sys
 import os
 
-from ssh import SSHManager, SSHError
+from upgrade.ssh import SSHManager, SSHError
 from time import time as now
 from tempfile import TemporaryDirectory
 from glob import glob
