@@ -47,34 +47,32 @@ sed_variables() {
     eval sed -i $args "$input"
 }
 
-cd /tmp/firmware
-
 # include firmware specific code
 . ./CONTROL
 
 # prepare configuration file
 sed_variables "$UBOOT_ENV_CFG" UBOOT_ENV_MTD UBOOT_ENV1_OFF UBOOT_ENV2_OFF
 
-flash_eraseall /dev/mtd${UBOOT_MTD}
+flash_erase /dev/mtd${UBOOT_MTD} 0 0 2>&1
 
 echo "Writing U-Boot images with FPGA bitstream..."
-nandwrite -ps ${SPL_OFF} /dev/mtd${UBOOT_MTD} "$SPL_IMAGE"
-nandwrite -ps ${UBOOT_OFF} /dev/mtd${UBOOT_MTD} "$UBOOT_IMAGE"
-nandwrite -ps ${BITSTREAM_OFF} /dev/mtd${UBOOT_MTD} "$BITSTREAM_DATA"
+nandwrite -ps ${SPL_OFF} /dev/mtd${UBOOT_MTD} "$SPL_IMAGE" 2>&1
+nandwrite -ps ${UBOOT_OFF} /dev/mtd${UBOOT_MTD} "$UBOOT_IMAGE" 2>&1
+nandwrite -ps ${BITSTREAM_OFF} /dev/mtd${UBOOT_MTD} "$BITSTREAM_DATA" 2>&1
 
-[ ${UBOOT_MTD} != ${UBOOT_ENV_MTD} ] && flash_eraseall /dev/mtd${UBOOT_ENV_MTD}
+[ ${UBOOT_MTD} != ${UBOOT_ENV_MTD} ] && flash_erase /dev/mtd${UBOOT_ENV_MTD} 0 0 2>&1
 
 echo "Writing U-Boot environment..."
-nandwrite -ps ${UBOOT_ENV1_OFF} /dev/mtd${UBOOT_ENV_MTD} "$UBOOT_ENV_DATA"
-nandwrite -ps ${UBOOT_ENV2_OFF} /dev/mtd${UBOOT_ENV_MTD} "$UBOOT_ENV_DATA"
+nandwrite -ps ${UBOOT_ENV1_OFF} /dev/mtd${UBOOT_ENV_MTD} "$UBOOT_ENV_DATA" 2>&1
+nandwrite -ps ${UBOOT_ENV2_OFF} /dev/mtd${UBOOT_ENV_MTD} "$UBOOT_ENV_DATA" 2>&1
 
-flash_eraseall /dev/mtd${SRC_STAGE2_MTD}
+flash_erase /dev/mtd${SRC_STAGE2_MTD} 0 0 2>&1
 
 echo "Writing kernel image..."
-nandwrite -ps ${SRC_KERNEL_OFF} /dev/mtd${SRC_STAGE2_MTD} "$KERNEL_IMAGE"
+nandwrite -ps ${SRC_KERNEL_OFF} /dev/mtd${SRC_STAGE2_MTD} "$KERNEL_IMAGE" 2>&1
 
 echo "Writing stage2 tarball..."
-nandwrite -ps ${SRC_STAGE2_OFF} /dev/mtd${SRC_STAGE2_MTD} "$STAGE2_FIRMWARE"
+nandwrite -ps ${SRC_STAGE2_OFF} /dev/mtd${SRC_STAGE2_MTD} "$STAGE2_FIRMWARE" 2>&1
 
 echo "U-Boot configuration..."
 
