@@ -17,6 +17,10 @@
 
 export PATH=/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin
 
+flash_eraseall() {
+	flash_erase "$1" 0 0
+}
+
 file_size() {
 	printf "0x%x" $(stat -c "%s" "$1")
 }

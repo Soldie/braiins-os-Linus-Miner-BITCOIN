@@ -27,11 +27,13 @@ import os
 import sys
 import glob
 import filecmp
+import tempfile
 
 import miner.hwid as hwid
 
 from itertools import chain
 from collections import OrderedDict, namedtuple
+from contextlib import contextmanager
 from termcolor import colored
 from functools import partial
 from datetime import datetime, timezone
@@ -54,7 +56,7 @@ class BuilderStop(Exception):
 ImageSd = namedtuple('ImageSd', ['boot', 'uboot', 'fpga', 'kernel'])
 ImageRecovery = namedtuple('ImageRecovery', ['boot', 'uboot', 'fpga', 'kernel', 'factory'])
 ImageNand = namedtuple('ImageNand', ['boot', 'uboot', 'fpga', 'factory', 'sysupgrade'])
-ImageDm = namedtuple('ImageDm', ['boot', 'uboot', 'fpga', 'kernel', 'kernel_recovery', 'factory'])
+ImageUpgrade = namedtuple('ImageUpgrade', ['boot', 'uboot', 'fpga', 'kernel', 'kernel_recovery', 'factory'])
 ImageFeeds = namedtuple('ImageFeeds', ['key', 'packages', 'sysupgrade'])
 
 
@@ -119,7 +121,30 @@ class Builder:
 
     MTD_BITSTREAM = 'fpga'
 
-    DM_VERSIONS = 3
+    UPGRADE_IMAGE_PREFIX = 'braiins-os'
+
+    ARCHIVE_FLAG_FLAT = 'flat'
+
+    ARCHIVE_TGZ = 'tar.gz'
+    ARCHIVE_TBZ2 = 'tar.bz2'
+
+    UPGRADE_DM1 = 'dm1'
+    UPGRADE_DM1_SSH = (UPGRADE_DM1, 'ssh')
+    UPGRADE_DM1_TELNET = (UPGRADE_DM1, 'telnet')
+    UPGRADE_AM1 = 'am1'
+    UPGRADE_AM1_SSH = (UPGRADE_AM1, 'ssh')
+    UPGRADE_AM1_WEB = (UPGRADE_AM1, 'web')
+    UPGRADE_VERSION = {
+        'zynq-dm1': (
+            (UPGRADE_DM1_SSH, (ARCHIVE_TBZ2, [])),
+            (UPGRADE_DM1_TELNET, (ARCHIVE_TBZ2, []))
+        ),
+        'zynq-am1': (
+            (UPGRADE_AM1_SSH, (ARCHIVE_TBZ2, [])),
+            (UPGRADE_AM1_WEB, (ARCHIVE_TGZ, [ARCHIVE_FLAG_FLAT]))
+        )
+    }
+
     DM_DIR = 'upgrade_dm'
     DM_FIRMWARE_DIR = 'firmware'
     DM_UBOOT_ENV = 'uboot_env.bin'
@@ -128,9 +153,8 @@ class Builder:
     DM_MINER_CFG = 'miner_cfg.bin'
     DM_MINER_CFG_CONFIG = 'miner_cfg.config'
     DM_INIT_SCRIPT_SRC = '__init__.py'
-    DM_UPGRADE_SCRIPT_SRC = 'upgrade_v{version}.py'
-    DM_PLATFORM_SCRIPT_SRC = os.path.join('dm1', 'platform.py')
-    AM_PLATFORM_SCRIPT_SRC = os.path.join('am1', 'platform.py')
+    DM_UPGRADE_SCRIPT_SRC = 'upgrade.py'
+    DM_PLATFORM_SCRIPT_SRC = 'platform.py'
     DM_BACKUP_SCRIPT_SRC = 'backup.py'
     DM_RESTORE_SCRIPT_SRC = 'restore.py'
     DM_INIT_SCRIPT = '__init__.py'
@@ -138,13 +162,17 @@ class Builder:
     DM_PLATFORM_SCRIPT = 'platform.py'
     DM_BACKUP_SCRIPT = 'backup.py'
     DM_RESTORE_SCRIPT = 'restore2factory.py'
-    DM_SCRIPT_REQUIREMENTS_SRC = 'requirements_v{version}.txt'
+    DM_SCRIPT_REQUIREMENTS_SRC = 'requirements.txt'
     DM_SCRIPT_REQUIREMENTS = 'requirements.txt'
-    DM_STAGE1_CONTROL_SRC = 'CONTROL_v{version}'
+    DM_STAGE1_CONTROL_SRC = 'CONTROL'
     DM_STAGE1_CONTROL = 'CONTROL'
     DM_STAGE1_SCRIPT = 'stage1.sh'
     DM_STAGE2_SCRIPT = 'stage2.sh'
     DM_STAGE2 = 'stage2.tgz'
+    AM_RUNME_SRC = 'runme.sh'
+    AM_RUNME = 'runme.sh'
+    AM_UBI_INFO_SRC = 'ubi_info'
+    AM_UBI_INFO = 'ubi_info'
 
     # feeds index constants
     FEEDS_INDEX = 'Packages'
@@ -1167,7 +1195,7 @@ class Builder:
             def __init__(self, sftp):
                 self.sftp = sftp
 
-            def put(self, src, dst, compress=False):
+            def put(self, src, dst, compress=False, cache=None):
                 logging.info("Uploading '{}'...".format(dst))
                 self.sftp.put(src, dst)
 
@@ -1454,9 +1482,10 @@ class Builder:
         :param name:
             Relative path to the file.
         :return:
-            Path to the file from project directory.
+            Path to the file from project directory or None when file does not exist.
         """
-        return os.path.abspath(os.path.join(*path))
+        file_path = os.path.abspath(os.path.join(*path))
+        return file_path if os.path.isfile(file_path) else None
 
     def _create_dm_miner_cfg_input(self):
         """
@@ -1563,7 +1592,32 @@ class Builder:
         stage2.seek(0)
         return stage2
 
-    def _create_dm_stage1_control(self, version: int):
+    def _get_upgrade_file(self, name, version):
+        """
+        Return absolute path to upgrade file
+
+        It tries to find file with matching version or continues to find more generic implementation.
+
+        :param name:
+            Name of upgrade file.
+        :param version:
+            Version of target firmware.
+        :return:
+            Absolute path to upgrade file or None when it does not exist.
+        """
+        # try file paths from the most specific to more generic one
+        relative_paths = [
+            os.path.join(*version, name),
+            os.path.join(version[0], name),
+            name
+        ]
+        for relative_path in relative_paths:
+            path = self._get_project_file(self.DM_DIR, relative_path)
+            if path:
+                return path
+        return None
+
+    def _create_dm_stage1_control(self, version):
         """
         Create script with variables for stage1 upgrade script
 
@@ -1572,9 +1626,9 @@ class Builder:
         :return:
             Opened stream with generated script.
         """
-        control_path = self._get_project_file(self.DM_DIR, self.DM_STAGE1_CONTROL_SRC.format(version=version))
-        info = io.BytesIO()
+        control_path = self._get_upgrade_file(self.DM_STAGE1_CONTROL_SRC, version)
 
+        info = io.BytesIO()
         hwver = {
             'zynq-dm1-g9': 'G9',
             'zynq-dm1-g19': 'G19',
@@ -1588,21 +1642,19 @@ class Builder:
         info.seek(0)
         return info
 
-    def _deploy_local_dm(self, upload_manager, image, version: int):
+    def _deploy_local_upgrade(self, upload_manager, image, version):
         """
         Deploy NAND or SD card image for Dm upgrade to local file system
 
-        :param version:
-            Version of target firmware.
         :param upload_manager:
             Upload manager for images transfer.
         :param image:
             Paths to firmware images.
+        :param version:
+            Version of target firmware.
         """
         # copy all files for transfer to subdirectory
-        target_dir = upload_manager.target_dir
-        upload_manager.target_dir = os.path.join(target_dir, self.DM_FIRMWARE_DIR)
-        os.makedirs(upload_manager.target_dir, exist_ok=True)
+        upload_manager.push_dir(self.DM_FIRMWARE_DIR)
 
         self._upload_images(upload_manager, image, compressed=('system.bit',))
 
@@ -1615,8 +1667,9 @@ class Builder:
         upload_manager.put(uboot_env, self.DM_UBOOT_ENV)
 
         # create tar with images for stage2 upgrade
-        stage2 = self._create_dm_stage2(image)
-        upload_manager.put(stage2, self.DM_STAGE2)
+        stage2 = None
+        while not upload_manager.put(stage2, self.DM_STAGE2, cache=self.DM_STAGE2):
+            stage2 = self._create_dm_stage2(image)
 
         # create env.sh with script variables
         stage1_env = self._create_dm_stage1_control(version)
@@ -1627,54 +1680,104 @@ class Builder:
         upload_manager.put(upgrade, self.DM_STAGE1_SCRIPT)
 
         # change to original target directory
-        upload_manager.target_dir = target_dir
+        upload_manager.pop_dir()
 
-        platform = None
-        if version == 2:
-            platform = self._get_project_file(self.DM_DIR, self.DM_PLATFORM_SCRIPT_SRC)
-        elif version == 3:
-            # copy system dependencies
-            upload_manager.target_dir = os.path.join(target_dir, 'system')
-            os.makedirs(upload_manager.target_dir, exist_ok=True)
+        # copy system dependencies
+        if version[0] == self.UPGRADE_AM1:
             build_dir = os.path.join(self._working_dir, 'build_dir', 'target-arm_cortex-a9+neon_musl-1.1.16_eabi')
+            upload_manager.push_dir('system')
+
             upload_manager.put(os.path.join(build_dir, 'toolchain', 'ipkg-arm_cortex-a9_neon', 'libc', 'lib',
                                             'ld-musl-armhf.so.1'), 'ld-musl-armhf.so.1')
-            upload_manager.put(os.path.join(build_dir, 'openssh-without-pam', 'openssh-7.4p1',
-                                            'sftp-server'), 'sftp-server')
             upload_manager.put(os.path.join(build_dir, 'u-boot-2018.03', 'ipkg-arm_cortex-a9_neon', 'uboot-envtools',
                                             'usr', 'sbin', 'fw_printenv'), 'fw_printenv')
-            upload_manager.target_dir = target_dir
+            if version != self.UPGRADE_AM1_WEB:
+                upload_manager.put(os.path.join(build_dir, 'openssh-without-pam', 'openssh-7.4p1',
+                                                'sftp-server'), 'sftp-server')
+            upload_manager.pop_dir()
 
-            platform = self._get_project_file(self.DM_DIR, self.AM_PLATFORM_SCRIPT_SRC)
+        # copy upgrade scripts
+        if version == self.UPGRADE_AM1_WEB:
+            runme = self._get_upgrade_file(self.AM_RUNME_SRC, version)
+            upload_manager.put(runme, self.AM_RUNME)
+            ubi_info = self._get_upgrade_file(self.AM_UBI_INFO_SRC, version)
+            upload_manager.put(ubi_info, self.AM_UBI_INFO)
+        else:
+            # copy upgrade modules
+            upload_manager.push_dir('upgrade')
 
-        hwid = self._get_project_file(self.LEDE_META_DIR, self.LEDE_META_HWID)
-        ssh = self._get_project_file(self.LEDE_META_DIR, self.LEDE_META_SSH) if version in [2, 3] else None
+            init = self._get_upgrade_file(self.DM_INIT_SCRIPT_SRC, version)
+            upload_manager.put(init, self.DM_INIT_SCRIPT)
+            hwid = self._get_project_file(self.LEDE_META_DIR, self.LEDE_META_HWID)
+            upload_manager.put(hwid, self.LEDE_META_HWID)
+            if version != self.UPGRADE_DM1_TELNET:
+                ssh = self._get_project_file(self.LEDE_META_DIR, self.LEDE_META_SSH)
+                upload_manager.put(ssh, self.LEDE_META_SSH)
+                platform = self._get_upgrade_file(self.DM_PLATFORM_SCRIPT_SRC, version)
+                upload_manager.put(platform, self.DM_PLATFORM_SCRIPT)
+                backup = self._get_upgrade_file(self.DM_BACKUP_SCRIPT_SRC, version)
+                upload_manager.put(backup, self.DM_BACKUP_SCRIPT)
+            upload_manager.pop_dir()
 
-        init = self._get_project_file(self.DM_DIR, self.DM_INIT_SCRIPT_SRC)
-        backup = self._get_project_file(self.DM_DIR, self.DM_BACKUP_SCRIPT_SRC) if version in [2, 3] else None
+            # copy main scripts
+            upgrade = self._get_upgrade_file(self.DM_UPGRADE_SCRIPT_SRC, version)
+            upload_manager.put(upgrade, self.DM_UPGRADE_SCRIPT)
+            restore = self._get_upgrade_file(self.DM_RESTORE_SCRIPT_SRC, version)
+            upload_manager.put(restore, self.DM_RESTORE_SCRIPT)
 
-        upgrade_ver = version if version != 3 else 2
-        restore = self._get_project_file(self.DM_DIR, self.DM_RESTORE_SCRIPT_SRC)
-        upgrade = self._get_project_file(self.DM_DIR, self.DM_UPGRADE_SCRIPT_SRC.format(version=upgrade_ver))
-        requirements = self._get_project_file(self.DM_DIR, self.DM_SCRIPT_REQUIREMENTS_SRC.format(version=upgrade_ver))
+            requirements = self._get_upgrade_file(self.DM_SCRIPT_REQUIREMENTS_SRC, version)
+            upload_manager.put(requirements, self.DM_SCRIPT_REQUIREMENTS)
 
-        # copy upgrade modules
-        upload_manager.target_dir = os.path.join(target_dir, 'upgrade')
-        os.makedirs(upload_manager.target_dir, exist_ok=True)
-        upload_manager.put(init, self.DM_INIT_SCRIPT)
-        if platform:
-            upload_manager.put(platform, self.DM_PLATFORM_SCRIPT)
-        if ssh:
-            upload_manager.put(ssh, self.LEDE_META_SSH)
-        if backup:
-            upload_manager.put(backup, self.DM_BACKUP_SCRIPT)
-        upload_manager.put(hwid, self.LEDE_META_HWID)
-        upload_manager.target_dir = target_dir
+    def _deploy_local_upgrades(self, upload_manager_cls, target_dir, image):
+        """
+        Deploy all versions of upgrade images
 
-        # copy main scripts
-        upload_manager.put(restore, self.DM_RESTORE_SCRIPT)
-        upload_manager.put(upgrade, self.DM_UPGRADE_SCRIPT)
-        upload_manager.put(requirements, self.DM_SCRIPT_REQUIREMENTS)
+        :param upload_manager_cls:
+            Upload manager class for images transfer.
+        :param target_dir:
+            Path to target directory.
+        :param image:
+            Paths to firmware images.
+        """
+        @contextmanager
+        def get_dst_path(temporary: bool):
+            if temporary:
+                directory = tempfile.TemporaryDirectory()
+                yield directory.name
+                directory.cleanup()
+            else:
+                yield target_dir
+
+        cache = None
+        versions = next((value for pattern, value in sorted(self.UPGRADE_VERSION.items(), reverse=True)
+                         if self._config.miner.platform.startswith(pattern)), None)
+
+        for version, (archive, archive_flags) in versions:
+            # create subdirectory for specific version
+            subtarget_path = '{}_{}_{}_{}'.format(
+                self.UPGRADE_IMAGE_PREFIX,
+                self._split_platform()[1],
+                version[1],
+                self.get_firmware_version())
+
+            with get_dst_path(archive is not None) as dst_path:
+                upload_manager = upload_manager_cls(dst_path, cache=cache)
+                if self.ARCHIVE_FLAG_FLAT not in archive_flags:
+                    upload_manager.push_dir(subtarget_path)
+
+                # prepare local image for potential archiving
+                self._deploy_local_upgrade(upload_manager, image, version)
+
+                # archive result
+                if archive in [self.ARCHIVE_TGZ, self.ARCHIVE_TBZ2]:
+                    dst_file_path = os.path.join(target_dir, subtarget_path) + '.' + archive
+                    mode = "w:{}".format(archive.split('.')[1])
+                    with tarfile.open(dst_file_path, mode) as tar:
+                        for file_path in os.listdir(dst_path):
+                            tar.add(os.path.join(dst_path, file_path), arcname=file_path)
+
+            # use cache for next run to get same shared objects
+            cache = upload_manager.get_cache()
 
     def _deploy_local(self, images, sd_config: bool, sd_recovery_config: bool):
         """
@@ -1690,22 +1793,50 @@ class Builder:
             Generate configuration files for recovery SD card version.
         """
         class UploadManager:
-            def __init__(self, target_dir: str):
-                self.target_dir = target_dir
+            def __init__(self, target_dir: str, cache=None):
+                self._target_dir_prev = []
+                self._target_dir = target_dir
+                self._cache = cache or {}
 
-            def put(self, src, dst, compress=False):
-                logging.info("Copying '{}' to '{}'...".format(dst, self.target_dir))
+            def get_cache(self):
+                return self._cache
+
+            def push_dir(self, path):
+                self._target_dir_prev.append(self._target_dir)
+                self._target_dir = os.path.join(self._target_dir, path)
+                os.makedirs(self._target_dir, exist_ok=True)
+
+            def pop_dir(self):
+                self._target_dir = self._target_dir_prev.pop()
+
+            def put(self, src, dst, compress=False, cache: str=None):
                 src_path = type(src) is str
-                src_file = open(src, 'rb') if src_path else src
-                dst_open = open if not compress else gzip.open
-                with dst_open(os.path.join(self.target_dir, dst), 'wb') as dst_file:
-                    shutil.copyfileobj(src_file, dst_file)
+                if cache and not src:
+                    src_file = self._cache.get(cache)
+                    if not src_file:
+                        # file is not found in cache
+                        return False
+                    src_file.seek(0)
+                else:
+                    src_file = open(src, 'rb') if src_path else src
+                    if cache and not src_path:
+                        self._cache[cache] = src_file
+                logging.info("Copying '{}' to '{}'...".format(dst, self._target_dir))
+                dst_file = open(os.path.join(self._target_dir, dst), 'wb')
+                if compress:
+                    # set gzip to get reproducible output
+                    dst_file = gzip.GzipFile(filename='', mode='wb', fileobj=dst_file, mtime=0)
+                shutil.copyfileobj(src_file, dst_file)
+                dst_file.close()
+
                 if src_path:
                     src_file.close()
+                return True
 
         image_sd = images.get('sd')
         image_sd_recovery = images.get('sd_recovery')
         image_nand_recovery = images.get('nand_recovery')
+        image_upgrade = images.get('upgrade')
 
         if image_sd:
             target_dir = self._get_local_target_dir('sd')
@@ -1722,13 +1853,9 @@ class Builder:
             target_dir = self._get_local_target_dir('nand_recovery')
             self._upload_images(UploadManager(target_dir), image_nand_recovery, recovery=True)
 
-        # special local target for upgrading original firmware of specific version
-        for version in range(1, self.DM_VERSIONS + 1):
-            target_name = 'nand_dm_v{}'.format(version)
-            image_nand_dm = images.get(target_name)
-            if image_nand_dm:
-                target_dir = self._get_local_target_dir(target_name)
-                self._deploy_local_dm(UploadManager(target_dir), image_nand_dm, version)
+        if image_upgrade:
+            target_dir = self._get_local_target_dir('upgrade')
+            self._deploy_local_upgrades(UploadManager, target_dir, image_upgrade)
 
     def _deploy_feeds(self, images):
         """
@@ -1829,6 +1956,7 @@ class Builder:
             'local_sd_config',
             'local_sd_recovery_config',
             'local_nand_recovery',
+            'local_upgrade',
             'local_feeds'
         ]
         aliased_targets = {
@@ -1843,10 +1971,6 @@ class Builder:
                 'targets': {'local_sd_recovery', 'local_sd_recovery_config'},
             }
         }
-
-        nand_dm_versions = list('local_nand_dm_v{}'.format(version) for version in range(1, self.DM_VERSIONS + 1))
-        nand_dm_versions.append('local_nand_am')
-        supported_targets.extend(nand_dm_versions)
 
         images_ssh = {}
         images_local = {}
@@ -1908,9 +2032,9 @@ class Builder:
                     factory=os.path.join(generic_dir, 'lede-{}-nand-squashfs-factory.bin'.format(platform)),
                     sysupgrade=os.path.join(generic_dir, 'lede-{}-nand-squashfs-sysupgrade.tar'.format(platform))
                 )
-            if any(target in targets for target in nand_dm_versions):
+            if 'local_upgrade' in targets:
                 uboot_dir = 'uboot-{}'.format(platform)
-                nand_dm = ImageDm(
+                upgrade = ImageUpgrade(
                     boot=os.path.join(generic_dir, uboot_dir, 'boot.bin'),
                     uboot=os.path.join(generic_dir, uboot_dir, 'u-boot.img'),
                     fpga=self._get_bitstream_path(),
@@ -1918,9 +2042,7 @@ class Builder:
                     kernel_recovery=os.path.join(generic_dir, 'lede-{}-recovery-squashfs-fit.itb'.format(platform)),
                     factory=os.path.join(generic_dir, 'lede-{}-nand-squashfs-factory.bin'.format(platform))
                 )
-                for target in (target for target in nand_dm_versions if target in targets):
-                    version = target.split('_v')[1] if not target.endswith('_am') else 3
-                    images_local['nand_dm_v{}'.format(version)] = nand_dm
+                images_local['upgrade'] = upgrade
             if 'local_feeds' in targets:
                 feeds = ImageFeeds(
                     key=os.path.join(self._working_dir, self.BUILD_KEY_NAME),

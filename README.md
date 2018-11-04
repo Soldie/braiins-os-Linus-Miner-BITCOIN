@@ -418,9 +418,7 @@ utility. The following list specifies main local targets:
 * *local_sd* - the same function as remote target but target is specified by a local file path
 * *local_sd_recovery* - writes special SD recovery image to a local file path (e.g. it can be used for repairing a
   'bricked' machine that doesn't boot from its flash memory anymore)
-* *local_nand_dm_v1* - scripts and images needed for upgrading an original DragonMint firmware
-* *local_nand_dm_v2* - scripts and images needed for upgrading an improved DragonMint firmware (Kolivas)
-* *local_nand_am* - scripts and images needed for upgrading Antminer S9 factory firmware
+* *local_upgrade* - various images needed for upgrading an original firmware for target platform
 * *local_feeds* - sysupgrade tarball with current firmware and packages needed for creating standard OpenWrt feeds server
 
 Similarly to the remote targets there are also *configuration* targets:
@@ -595,18 +593,22 @@ All generated files are described in the following list:
 The example below for Dragon Mint DM1 shows how to upgrade the factory firmware to braiins OS firmware:
 
 ```bash
-# create stage1 upgrade script and all required images for new DragonMint with G19 control board
-$ ./bb.py deploy local_nand_dm_v2:~/nand_dm_v2
+# create upgrade tarballs for DragonMint control board
+$ ./bb.py deploy local_upgrade:~/upgrade
+
+# extract upgrade tarball for new DragonMint with G19 control board
+$ cd ~/upgrade
+$ tar xvf braiins-os_dm1-g19_ssh_<version>.tar.bz2
+$ cd braiins-os_dm1-g19_ssh_<version>
 
 # run generated upgrade script from local host and initiate upgrade over ssh connection
-$ cd ~/nand_dm_v2
-$ python3 ./upgrade.py 192.168.0.1
+$ python3 ./upgrade2bos.py 192.168.0.1
 ```
 
-There exists two versions of original firmware and appropriate target for deploy should be used:
+There are two versions of original firmware. Therefore, an appropriate deploy target must to be used:
 
-* *local_nand_dm_v1* - first version of firmware which running only *telnet* server
-* *local_nand_dm_v2* - improved version which uses *ssh* server instead
+* *braiins-os_dm1-g19_telnet_\<version\>* - initial release of the firmware that had only *telnet* server for remote access
+* *braiins-os_dm1-g19_ssh_\<version\>* - improved release of the firmware that had *ssh* server instead
 
 You have to get login information for *root* access over *telnet* (v1) or *ssh* (v2) for your DragonMint miner before
 you start the upgrade process. Without this information you have to open your miner and use SD version for boot and
