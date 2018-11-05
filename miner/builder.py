@@ -235,7 +235,7 @@ class Builder:
                 stream.write('{}{}=y\n'.format(config, dst_name))
 
     def _write_firmware_version(self, stream, config):
-        fw_version = self._get_firmware_version()
+        fw_version = self.get_firmware_version()
         logging.debug("Set firmware version to '{}'".format(fw_version))
         stream.write('{}="{}"\n'.format(config, fw_version))
 
@@ -406,7 +406,7 @@ class Builder:
         if output:
             return process.stdout
 
-    def _get_firmware_version(self, short=False, local_time=False) -> str:
+    def get_firmware_version(self, short=False, local_time=False) -> str:
         """
         Return version name for firmware
 
@@ -451,7 +451,7 @@ class Builder:
             patch_level = 0
 
         prefix = '{:%Y-%m-%d}-{}'.format(commit_time, patch_level)
-        return prefix if short else '{}-{}{}'.format(prefix, commit, dirty)
+        return '{}{}'.format(prefix, dirty) if short else '{}-{}{}'.format(prefix, commit, dirty)
 
     def _get_repo(self, name: str) -> git.Repo:
         """
@@ -2208,7 +2208,7 @@ class Builder:
             raise BuilderStop
 
         # get short version for 'whatsnew.md' header
-        fw_version_short = self._get_firmware_version(short=True, local_time=True)
+        fw_version_short = self.get_firmware_version(short=True, local_time=True)
         self.patch_whatsnew(self.WHATS_NEW, fw_version_short)
 
         # create commit with patched whatsnew file
@@ -2235,7 +2235,7 @@ class Builder:
         repo_meta.index.add([self.DEFAULT_CONFIG])
         repo_meta.index.commit("Release Firmware")
 
-        fw_version_long = self._get_firmware_version()
+        fw_version_long = self.get_firmware_version()
         fw_version = '{}_{}'.format(self.FEED_FIRMWARE, fw_version_long)
 
         # check if full version has the same prefix as short one

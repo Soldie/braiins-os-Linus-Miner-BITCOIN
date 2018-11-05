@@ -125,6 +125,11 @@ class CommandManager:
         builder = self.get_builder('prepare')
         builder.build(targets=self._args.target)
 
+    def build_version(self):
+        logging.debug("Called command 'build-version'")
+        builder = self.get_builder()
+        print(builder.get_firmware_version(short=self._args.short))
+
     def deploy(self):
         logging.debug("Called command 'deploy'")
         # change target MAC address
@@ -249,6 +254,13 @@ def main(argv):
                                 'when the <public> key is omitted then <secret>.pub is used')
     subparser.add_argument('target', nargs='*',
                            help='build only specific targets when specified')
+
+    # create the parser for the "build-version" command
+    subparser = subparsers.add_parser('build-version',
+                                      help="get version for current build")
+    subparser.set_defaults(func=command.build_version)
+    subparser.add_argument('-s', '--short', action='store_true',
+                           help='short version without commit suffix')
 
     # create the parser for the "deploy" command
     subparser = subparsers.add_parser('deploy',
