@@ -69,9 +69,9 @@ def upload_files(sftp, local_path, remote_path):
         for name in files:
             local_file = os.path.join(root, name)
             with Progress(local_file) as progress:
-                sftp.put(local_file, os.path.join(root_remote, name), callback=progress)
+                sftp.put(local_file, '/'.join([root_remote, name]), callback=progress)
         for name in dirs:
-            sftp.mkdir(os.path.join(root_remote, name))
+            sftp.mkdir('/'.join([root_remote, name]))
 
 
 def check_compatibility(ssh):
