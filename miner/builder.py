@@ -145,34 +145,34 @@ class Builder:
         )
     }
 
-    DM_DIR = 'upgrade_dm'
-    DM_FIRMWARE_DIR = 'firmware'
-    DM_UBOOT_ENV = 'uboot_env.bin'
-    DM_UBOOT_ENV_CONFIG = 'uboot_env.config'
-    DM_UBOOT_ENV_SRC = 'uboot_env.txt'
-    DM_MINER_CFG = 'miner_cfg.bin'
-    DM_MINER_CFG_CONFIG = 'miner_cfg.config'
-    DM_INIT_SCRIPT_SRC = '__init__.py'
-    DM_UPGRADE_SCRIPT_SRC = 'upgrade.py'
-    DM_PLATFORM_SCRIPT_SRC = 'platform.py'
-    DM_BACKUP_SCRIPT_SRC = 'backup.py'
-    DM_RESTORE_SCRIPT_SRC = 'restore.py'
-    DM_INIT_SCRIPT = '__init__.py'
-    DM_UPGRADE_SCRIPT = 'upgrade2bos.py'
-    DM_PLATFORM_SCRIPT = 'platform.py'
-    DM_BACKUP_SCRIPT = 'backup.py'
-    DM_RESTORE_SCRIPT = 'restore2factory.py'
-    DM_SCRIPT_REQUIREMENTS_SRC = 'requirements.txt'
-    DM_SCRIPT_REQUIREMENTS = 'requirements.txt'
-    DM_STAGE1_CONTROL_SRC = 'CONTROL'
-    DM_STAGE1_CONTROL = 'CONTROL'
-    DM_STAGE1_SCRIPT = 'stage1.sh'
-    DM_STAGE2_SCRIPT = 'stage2.sh'
-    DM_STAGE2 = 'stage2.tgz'
-    AM_RUNME_SRC = 'runme.sh'
-    AM_RUNME = 'runme.sh'
-    AM_UBI_INFO_SRC = 'ubi_info'
-    AM_UBI_INFO = 'ubi_info'
+    UPGRADE_DIR = 'upgrade'
+    UPGRADE_FIRMWARE_DIR = 'firmware'
+    UPGRADE_UBOOT_ENV = 'uboot_env.bin'
+    UPGRADE_UBOOT_ENV_CONFIG = 'uboot_env.config'
+    UPGRADE_UBOOT_ENV_TXT = 'uboot_env.txt'
+    UPGRADE_MINER_CFG = 'miner_cfg.bin'
+    UPGRADE_MINER_CFG_CONFIG = 'miner_cfg.config'
+    UPGRADE_SCRIPT_SRC = 'upgrade.py'
+    UPGRADE_SCRIPT = 'upgrade2bos.py'
+    UPGRADE_PLATFORM_SCRIPT_SRC = 'platform.py'
+    UPGRADE_PLATFORM_SCRIPT = 'platform.py'
+    UPGRADE_BACKUP_SCRIPT_SRC = 'backup.py'
+    UPGRADE_BACKUP_SCRIPT = 'backup.py'
+    UPGRADE_RESTORE_SCRIPT_SRC = 'restore.py'
+    UPGRADE_RESTORE_SCRIPT = 'restore2factory.py'
+    UPGRADE_INIT_SCRIPT_SRC = '__init__.py'
+    UPGRADE_INIT_SCRIPT = '__init__.py'
+    UPGRADE_SCRIPT_REQUIREMENTS_SRC = 'requirements.txt'
+    UPGRADE_SCRIPT_REQUIREMENTS = 'requirements.txt'
+    UPGRADE_STAGE1_CONTROL_SRC = 'CONTROL'
+    UPGRADE_STAGE1_CONTROL = 'CONTROL'
+    UPGRADE_STAGE1_SCRIPT = 'stage1.sh'
+    UPGRADE_STAGE2_SCRIPT = 'stage2.sh'
+    UPGRADE_STAGE2 = 'stage2.tgz'
+    UPGRADE_AM_RUNME_SRC = 'runme.sh'
+    UPGRADE_AM_UBI_INFO_SRC = 'ubi_info'
+    UPGRADE_AM_RUNME = 'runme.sh'
+    UPGRADE_AM_UBI_INFO = 'ubi_info'
 
     # feeds index constants
     FEEDS_INDEX = 'Packages'
@@ -1487,7 +1487,7 @@ class Builder:
         file_path = os.path.abspath(os.path.join(*path))
         return file_path if os.path.isfile(file_path) else None
 
-    def _create_dm_miner_cfg_input(self):
+    def _create_upgrade_miner_cfg_input(self):
         """
         Create input source for mkenvimage with miner configuration
         The configuration does not include MAC and HWID information.
@@ -1499,7 +1499,7 @@ class Builder:
         self._write_miner_cfg_input(miner_cfg_input, {self.MINER_MAC, self.MINER_HWID})
         return miner_cfg_input
 
-    def _create_dm_uboot_env(self):
+    def _create_upgrade_uboot_env(self):
         """
         Create U-Boot environment for converted Dm firmware
 
@@ -1507,8 +1507,8 @@ class Builder:
             Bytes stream with U-Boot environment.
         """
         mkenvimage = self._get_utility(self.LEDE_MKENVIMAGE)
-        uboot_env_base_input = self._get_project_file(self.DM_DIR, self.DM_UBOOT_ENV_SRC)
-        uboot_env_input = self._create_dm_miner_cfg_input()
+        uboot_env_base_input = self._get_project_file(self.UPGRADE_DIR, self.UPGRADE_UBOOT_ENV_TXT)
+        uboot_env_input = self._create_upgrade_miner_cfg_input()
 
         # merge miner configuration with default U-Boot env
         with open(uboot_env_base_input, 'rb') as base_input_file:
@@ -1519,7 +1519,7 @@ class Builder:
                       input=uboot_env_input.getvalue(), output=True)
         )
 
-    def _create_dm_miner_cfg(self):
+    def _create_upgrade_miner_cfg(self):
         """
         Create empty miner configuration environment
 
@@ -1527,7 +1527,7 @@ class Builder:
             Bytes stream with miner configuration environment.
         """
         mkenvimage = self._get_utility(self.LEDE_MKENVIMAGE)
-        miner_cfg_input = self._create_dm_miner_cfg_input()
+        miner_cfg_input = self._create_upgrade_miner_cfg_input()
 
         return io.BytesIO(
             self._run(mkenvimage, '-r', '-p', str(0), '-s', str(self.MINER_CFG_SIZE), '-',
@@ -1554,14 +1554,14 @@ class Builder:
 
         tar.addfile(file_info, compressed_file)
 
-    def _create_dm_stage2(self, image):
+    def _create_upgrade_stage2(self, image):
         """
         Create tarball with images for stage2 upgrade
 
         :param image:
             Paths to firmware images.
         """
-        logging.info("Creating dm stage2 tarball...")
+        logging.info("Creating upgrade stage2 tarball...")
 
         stage2 = io.BytesIO()
         tar = tarfile.open(mode = "w:gz", fileobj=stage2)
@@ -1575,18 +1575,18 @@ class Builder:
         self._add2tar_compressed_file(tar, image.factory, 'factory.bin.gz')
 
         # add miner_cfg.config file
-        miner_cfg_config = self._get_project_file(self.DM_DIR, self.DM_MINER_CFG_CONFIG)
-        tar.add(miner_cfg_config, self.DM_MINER_CFG_CONFIG)
+        miner_cfg_config = self._get_project_file(self.UPGRADE_DIR, self.UPGRADE_MINER_CFG_CONFIG)
+        tar.add(miner_cfg_config, self.UPGRADE_MINER_CFG_CONFIG)
 
         # add miner configuration environment compatible with U-Boot
-        miner_cfg = self._create_dm_miner_cfg()
-        miner_cfg_info = tar.gettarinfo(miner_cfg_config, arcname=self.DM_MINER_CFG)
+        miner_cfg = self._create_upgrade_miner_cfg()
+        miner_cfg_info = tar.gettarinfo(miner_cfg_config, arcname=self.UPGRADE_MINER_CFG)
         miner_cfg_info.size = get_stream_size(miner_cfg)
         tar.addfile(miner_cfg_info, miner_cfg)
 
         # add upgrade script
-        upgrade = self._get_project_file(self.DM_DIR, self.DM_STAGE2_SCRIPT)
-        tar.add(upgrade, self.DM_STAGE2_SCRIPT)
+        upgrade = self._get_project_file(self.UPGRADE_DIR, self.UPGRADE_STAGE2_SCRIPT)
+        tar.add(upgrade, self.UPGRADE_STAGE2_SCRIPT)
 
         tar.close()
         stage2.seek(0)
@@ -1612,12 +1612,12 @@ class Builder:
             name
         ]
         for relative_path in relative_paths:
-            path = self._get_project_file(self.DM_DIR, relative_path)
+            path = self._get_project_file(self.UPGRADE_DIR, relative_path)
             if path:
                 return path
         return None
 
-    def _create_dm_stage1_control(self, version):
+    def _create_upgrade_stage1_control(self, version):
         """
         Create script with variables for stage1 upgrade script
 
@@ -1626,7 +1626,7 @@ class Builder:
         :return:
             Opened stream with generated script.
         """
-        control_path = self._get_upgrade_file(self.DM_STAGE1_CONTROL_SRC, version)
+        control_path = self._get_upgrade_file(self.UPGRADE_STAGE1_CONTROL_SRC, version)
 
         info = io.BytesIO()
         hwver = {
@@ -1654,30 +1654,30 @@ class Builder:
             Version of target firmware.
         """
         # copy all files for transfer to subdirectory
-        upload_manager.push_dir(self.DM_FIRMWARE_DIR)
+        upload_manager.push_dir(self.UPGRADE_FIRMWARE_DIR)
 
         self._upload_images(upload_manager, image, compressed=('system.bit',))
 
         # copy uboot_env.config file
-        uboot_env_config = self._get_project_file(self.DM_DIR, self.DM_UBOOT_ENV_CONFIG)
-        upload_manager.put(uboot_env_config, self.DM_UBOOT_ENV_CONFIG)
+        uboot_env_config = self._get_project_file(self.UPGRADE_DIR, self.UPGRADE_UBOOT_ENV_CONFIG)
+        upload_manager.put(uboot_env_config, self.UPGRADE_UBOOT_ENV_CONFIG)
 
         # create U-Boot environment
-        uboot_env = self._create_dm_uboot_env()
-        upload_manager.put(uboot_env, self.DM_UBOOT_ENV)
+        uboot_env = self._create_upgrade_uboot_env()
+        upload_manager.put(uboot_env, self.UPGRADE_UBOOT_ENV)
 
         # create tar with images for stage2 upgrade
         stage2 = None
-        while not upload_manager.put(stage2, self.DM_STAGE2, cache=self.DM_STAGE2):
-            stage2 = self._create_dm_stage2(image)
+        while not upload_manager.put(stage2, self.UPGRADE_STAGE2, cache=self.UPGRADE_STAGE2):
+            stage2 = self._create_upgrade_stage2(image)
 
         # create env.sh with script variables
-        stage1_env = self._create_dm_stage1_control(version)
-        upload_manager.put(stage1_env, self.DM_STAGE1_CONTROL)
+        stage1_env = self._create_upgrade_stage1_control(version)
+        upload_manager.put(stage1_env, self.UPGRADE_STAGE1_CONTROL)
 
         # copy stage1 upgrade script
-        upgrade = self._get_project_file(self.DM_DIR, self.DM_STAGE1_SCRIPT)
-        upload_manager.put(upgrade, self.DM_STAGE1_SCRIPT)
+        upgrade = self._get_project_file(self.UPGRADE_DIR, self.UPGRADE_STAGE1_SCRIPT)
+        upload_manager.put(upgrade, self.UPGRADE_STAGE1_SCRIPT)
 
         # change to original target directory
         upload_manager.pop_dir()
@@ -1698,35 +1698,35 @@ class Builder:
 
         # copy upgrade scripts
         if version == self.UPGRADE_AM1_WEB:
-            runme = self._get_upgrade_file(self.AM_RUNME_SRC, version)
-            upload_manager.put(runme, self.AM_RUNME)
-            ubi_info = self._get_upgrade_file(self.AM_UBI_INFO_SRC, version)
-            upload_manager.put(ubi_info, self.AM_UBI_INFO)
+            runme = self._get_upgrade_file(self.UPGRADE_AM_RUNME_SRC, version)
+            upload_manager.put(runme, self.UPGRADE_AM_RUNME)
+            ubi_info = self._get_upgrade_file(self.UPGRADE_AM_UBI_INFO_SRC, version)
+            upload_manager.put(ubi_info, self.UPGRADE_AM_UBI_INFO)
         else:
             # copy upgrade modules
             upload_manager.push_dir('upgrade')
 
-            init = self._get_upgrade_file(self.DM_INIT_SCRIPT_SRC, version)
-            upload_manager.put(init, self.DM_INIT_SCRIPT)
+            init = self._get_upgrade_file(self.UPGRADE_INIT_SCRIPT_SRC, version)
+            upload_manager.put(init, self.UPGRADE_INIT_SCRIPT)
             hwid = self._get_project_file(self.LEDE_META_DIR, self.LEDE_META_HWID)
             upload_manager.put(hwid, self.LEDE_META_HWID)
             if version != self.UPGRADE_DM1_TELNET:
                 ssh = self._get_project_file(self.LEDE_META_DIR, self.LEDE_META_SSH)
                 upload_manager.put(ssh, self.LEDE_META_SSH)
-                platform = self._get_upgrade_file(self.DM_PLATFORM_SCRIPT_SRC, version)
-                upload_manager.put(platform, self.DM_PLATFORM_SCRIPT)
-                backup = self._get_upgrade_file(self.DM_BACKUP_SCRIPT_SRC, version)
-                upload_manager.put(backup, self.DM_BACKUP_SCRIPT)
+                platform = self._get_upgrade_file(self.UPGRADE_PLATFORM_SCRIPT_SRC, version)
+                upload_manager.put(platform, self.UPGRADE_PLATFORM_SCRIPT)
+                backup = self._get_upgrade_file(self.UPGRADE_BACKUP_SCRIPT_SRC, version)
+                upload_manager.put(backup, self.UPGRADE_BACKUP_SCRIPT)
             upload_manager.pop_dir()
 
             # copy main scripts
-            upgrade = self._get_upgrade_file(self.DM_UPGRADE_SCRIPT_SRC, version)
-            upload_manager.put(upgrade, self.DM_UPGRADE_SCRIPT)
-            restore = self._get_upgrade_file(self.DM_RESTORE_SCRIPT_SRC, version)
-            upload_manager.put(restore, self.DM_RESTORE_SCRIPT)
+            upgrade = self._get_upgrade_file(self.UPGRADE_SCRIPT_SRC, version)
+            upload_manager.put(upgrade, self.UPGRADE_SCRIPT)
+            restore = self._get_upgrade_file(self.UPGRADE_RESTORE_SCRIPT_SRC, version)
+            upload_manager.put(restore, self.UPGRADE_RESTORE_SCRIPT)
 
-            requirements = self._get_upgrade_file(self.DM_SCRIPT_REQUIREMENTS_SRC, version)
-            upload_manager.put(requirements, self.DM_SCRIPT_REQUIREMENTS)
+            requirements = self._get_upgrade_file(self.UPGRADE_SCRIPT_REQUIREMENTS_SRC, version)
+            upload_manager.put(requirements, self.UPGRADE_SCRIPT_REQUIREMENTS)
 
     def _deploy_local_upgrades(self, upload_manager_cls, target_dir, image):
         """
