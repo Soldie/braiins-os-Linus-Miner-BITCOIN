@@ -86,11 +86,15 @@ def main(args):
         # generate HW identifier for miner
         hw_id = hwid.generate()
 
+        # get other stage1 parameters
+        keep_network = 'no' if args.no_keep_network else 'yes'
+        keep_hostname = 'yes' if args.keep_hostname else 'no'
+
         # run stage1 upgrade process
         try:
             print("Upgrading firmware...")
             stdout, _ = ssh.run('cd', TARGET_DIR, '&&', 'ls', '-l', '&&',
-                                "/bin/sh stage1.sh '{}'".format(hw_id))
+                                "/bin/sh stage1.sh '{}' {} {}".format(hw_id, keep_network, keep_hostname))
         except subprocess.CalledProcessError as error:
             for line in error.stderr.readlines():
                 print(line, end='')
@@ -114,6 +118,10 @@ if __name__ == "__main__":
                         help='hostname of miner with original firmware')
     parser.add_argument('--no-backup', action='store_true',
                         help='skip NAND backup before upgrade')
+    parser.add_argument('--no-keep-network', action='store_true',
+                        help='do not keep miner network configuration (use DHCP)')
+    parser.add_argument('--keep-hostname', action='store_true',
+                        help='keep miner hostname')
 
     # parse command line arguments
     args = parser.parse_args(sys.argv[1:])

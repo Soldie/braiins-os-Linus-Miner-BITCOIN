@@ -29,6 +29,10 @@ get_bm_config() {
 	sed -n '/"'$1'"/s/.*:[ "]*\([^ ",]*\)[ ",]*/\1/p' "/config/bmminer.conf"
 }
 
+get_net_config() {
+	sed -n '/'$1'=/s/.*=["]*\([^"]*\)["]*/\1/p' /config/network.conf
+}
+
 ETHADDR=$(cat /sys/class/net/eth0/address)
 ANTMINER_VER=$(sed -n 2p /usr/bin/compile_time)
 
@@ -59,6 +63,13 @@ SRC_STAGE2_OFF=0x0A00000
 DST_STAGE2_OFF=0x3D00000
 SRC_STAGE2_MTD=2
 DST_STAGE2_MTD=8
+
+# save network settings
+NET_HOSTNAME=$(get_net_config "hostname")
+NET_IP=$(get_net_config "ipaddress")
+NET_MASK=$(get_net_config "netmask")
+NET_GATEWAY=$(get_net_config "gateway")
+NET_DNS_SERVERS=$(get_net_config "dnsservers" | tr " " ,)
 
 # save all local settings
 MINER_FREQ=$(get_bm_config "bitmain-freq")

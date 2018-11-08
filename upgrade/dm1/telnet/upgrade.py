@@ -127,7 +127,7 @@ def main(args):
 
     # generate HW identifier for miner
     hw_id = hwid.generate()
-    tn.write_str("/bin/sh stage1.sh '{}'\n".format(hw_id))
+    tn.write_str("/bin/sh stage1.sh '{}' no no\n".format(hw_id))
     tn.write_str("reboot\n")
 
     tn.write_str("exit\n")

@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-if [ "$#" -ne 1 ]; then
+if [ "$#" -ne 3 ]; then
     echo "Illegal number of parameters"
     exit 1
 fi
@@ -25,6 +25,9 @@ fi
 set -e
 
 MINER_HWID="$1"
+KEEP_NET_CONFIG="$2"
+KEEP_HOSTNAME="$3"
+
 UBOOT_ENV_CFG="uboot_env.config"
 
 SPL_IMAGE="boot.bin"
@@ -89,8 +92,20 @@ fw_setenv -c "$UBOOT_ENV_CFG" stage2_off ${DST_STAGE2_OFF}
 fw_setenv -c "$UBOOT_ENV_CFG" stage2_size $(file_size "$STAGE2_FIRMWARE")
 fw_setenv -c "$UBOOT_ENV_CFG" stage2_mtd ${DST_STAGE2_MTD}
 
-# set miner configuration
 fw_setenv -c "$UBOOT_ENV_CFG" ethaddr ${ETHADDR}
+
+# set network konfiguration
+if [ x"$KEEP_NET_CONFIG" == x"yes" ]; then
+    fw_setenv -c "$UBOOT_ENV_CFG" net_ip ${NET_IP}
+    fw_setenv -c "$UBOOT_ENV_CFG" net_mask ${NET_MASK}
+    fw_setenv -c "$UBOOT_ENV_CFG" net_gateway ${NET_GATEWAY}
+    fw_setenv -c "$UBOOT_ENV_CFG" net_dns_servers ${NET_DNS_SERVERS}
+fi
+if [ x"$KEEP_HOSTNAME" == x"yes" ]; then
+    fw_setenv -c "$UBOOT_ENV_CFG" net_hostname ${NET_HOSTNAME}
+fi
+
+# set miner configuration
 fw_setenv -c "$UBOOT_ENV_CFG" miner_hwid ${MINER_HWID}
 
 # s9 specific configuration
