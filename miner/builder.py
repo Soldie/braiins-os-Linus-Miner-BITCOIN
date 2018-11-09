@@ -160,6 +160,8 @@ class Builder:
     UPGRADE_BACKUP_SCRIPT = 'backup.py'
     UPGRADE_RESTORE_SCRIPT_SRC = 'restore.py'
     UPGRADE_RESTORE_SCRIPT = 'restore2factory.py'
+    UPGRADE_TRANSFER_SCRIPT_SRC = 'transfer.py'
+    UPGRADE_TRANSFER_SCRIPT = 'transfer.py'
     UPGRADE_INIT_SCRIPT_SRC = '__init__.py'
     UPGRADE_INIT_SCRIPT = '__init__.py'
     UPGRADE_SCRIPT_REQUIREMENTS_SRC = 'requirements.txt'
@@ -169,6 +171,8 @@ class Builder:
     UPGRADE_STAGE1_SCRIPT = 'stage1.sh'
     UPGRADE_STAGE2_SCRIPT = 'stage2.sh'
     UPGRADE_STAGE2 = 'stage2.tgz'
+    UPGRADE_FACTORY_RESTORE_SRC = 'restore.sh'
+    UPGRADE_FACTORY_RESTORE = 'restore.sh'
     UPGRADE_AM_RUNME_SRC = 'runme.sh'
     UPGRADE_AM_UBI_INFO_SRC = 'ubi_info'
     UPGRADE_AM_RUNME = 'runme.sh'
@@ -1708,15 +1712,22 @@ class Builder:
 
             init = self._get_upgrade_file(self.UPGRADE_INIT_SCRIPT_SRC, version)
             upload_manager.put(init, self.UPGRADE_INIT_SCRIPT)
+            transfer = self._get_upgrade_file(self.UPGRADE_TRANSFER_SCRIPT_SRC, version)
+            upload_manager.put(transfer, self.UPGRADE_TRANSFER_SCRIPT)
             hwid = self._get_project_file(self.LEDE_META_DIR, self.LEDE_META_HWID)
             upload_manager.put(hwid, self.LEDE_META_HWID)
-            if version != self.UPGRADE_DM1_TELNET:
-                ssh = self._get_project_file(self.LEDE_META_DIR, self.LEDE_META_SSH)
-                upload_manager.put(ssh, self.LEDE_META_SSH)
-                platform = self._get_upgrade_file(self.UPGRADE_PLATFORM_SCRIPT_SRC, version)
-                upload_manager.put(platform, self.UPGRADE_PLATFORM_SCRIPT)
-                backup = self._get_upgrade_file(self.UPGRADE_BACKUP_SCRIPT_SRC, version)
-                upload_manager.put(backup, self.UPGRADE_BACKUP_SCRIPT)
+            ssh = self._get_project_file(self.LEDE_META_DIR, self.LEDE_META_SSH)
+            upload_manager.put(ssh, self.LEDE_META_SSH)
+            platform = self._get_upgrade_file(self.UPGRADE_PLATFORM_SCRIPT_SRC, version)
+            upload_manager.put(platform, self.UPGRADE_PLATFORM_SCRIPT)
+            backup = self._get_upgrade_file(self.UPGRADE_BACKUP_SCRIPT_SRC, version)
+            upload_manager.put(backup, self.UPGRADE_BACKUP_SCRIPT)
+
+            # get optional factory restore script
+            factory_restore = self._get_upgrade_file(self.UPGRADE_FACTORY_RESTORE_SRC, version)
+            if factory_restore:
+                upload_manager.put(factory_restore, self.UPGRADE_FACTORY_RESTORE)
+
             upload_manager.pop_dir()
 
             # copy main scripts

@@ -20,13 +20,14 @@
 import argparse
 import subprocess
 import sys
-import os
 
 import upgrade.hwid as hwid
+import upgrade.platform as platform
+import upgrade.backup as backup
 
-from upgrade.platform import backup_firmware, prepare_system
+from upgrade.platform import PlatformStop
 from upgrade.ssh import SSHManager, SSHError
-from progress.bar import Bar
+from upgrade.transfer import upload_local_files
 
 USERNAME = 'root'
 PASSWORD = None
@@ -39,39 +40,6 @@ TARGET_DIR = '/tmp/firmware'
 
 class UpgradeStop(Exception):
     pass
-
-
-class Progress:
-    def __init__(self, file_path):
-        self.file_path = file_path
-        self.progress = None
-        self._last = 0
-
-    def __enter__(self):
-        file_size = os.path.getsize(self.file_path)
-        self.progress = Bar('{}:'.format(self.file_path), max=file_size)
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.progress.finish()
-
-    def __call__(self, transferred: int, total: int):
-        self.progress.next(transferred - self._last)
-        self._last = transferred
-
-
-def upload_files(sftp, local_path, remote_path):
-    print("Uploading firmware...")
-    sftp.chdir(remote_path)
-
-    for root, dirs, files in os.walk(local_path):
-        root_remote = os.path.relpath(root, local_path)
-        for name in files:
-            local_file = os.path.join(root, name)
-            with Progress(local_file) as progress:
-                sftp.put(local_file, '/'.join([root_remote, name]), callback=progress)
-        for name in dirs:
-            sftp.mkdir('/'.join([root_remote, name]))
 
 
 def check_compatibility(ssh):
@@ -94,20 +62,25 @@ def main(args):
         # check compatibility of remote server
         check_compatibility(ssh)
 
-        if not args.no_backup and not backup_firmware(ssh, BACKUP_DIR):
-            raise UpgradeStop
+        if not args.no_backup:
+            mac = backup.ssh_mac(ssh)
+            backup_dir = backup.get_output_dir(BACKUP_DIR, mac)
+            if not platform.backup_firmware(args, ssh, backup_dir, mac):
+                raise UpgradeStop
 
         # prepare target directory
         ssh.run('rm', '-fr', TARGET_DIR)
         ssh.run('mkdir', '-p', TARGET_DIR)
 
         # upgrade remote system with missing utilities
-        if not prepare_system(ssh, SYSTEM_DIR):
+        if not platform.prepare_system(ssh, SYSTEM_DIR):
             raise UpgradeStop
 
         # copy firmware files to the server over SFTP
         sftp = ssh.open_sftp()
-        upload_files(sftp, SOURCE_DIR, TARGET_DIR)
+        sftp.chdir(TARGET_DIR)
+        print("Uploading firmware...")
+        upload_local_files(sftp, SOURCE_DIR)
         sftp.close()
 
         # generate HW identifier for miner
@@ -149,5 +122,8 @@ if __name__ == "__main__":
         main(args)
     except SSHError as e:
         print(str(e))
-    except UpgradeStop:
         sys.exit(1)
+    except UpgradeStop:
+        sys.exit(2)
+    except PlatformStop:
+        sys.exit(3)

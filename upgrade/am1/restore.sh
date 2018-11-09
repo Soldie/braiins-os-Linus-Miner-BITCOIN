@@ -1,3 +1,6 @@
+#!/bin/sh
+
+# Copyright (C) 2018  Braiins Systems s.r.o.
 #
 # This file is part of Braiins Build System (BB).
 #
@@ -14,24 +17,26 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from .backup import ssh_backup as backup_firmware
-from .backup import ssh_restore as restore_firmware
+set -e
 
-from contextlib import contextmanager
+# write all images to NAND
+mtd -e BOOT.bin-env-dts-kernel write ./BOOT.bin BOOT.bin-env-dts-kernel
+mtd -np 0x1020000 write ./devicetree.dtb BOOT.bin-env-dts-kernel
+mtd -np 0x1100000 write ./uImage BOOT.bin-env-dts-kernel
+mtd -np 0x1040000 write ./upgrade-marker.bin BOOT.bin-env-dts-kernel
 
+mtd -e upgrade-rootfs write ./rootfs.jffs2 upgrade-rootfs
 
-class PlatformStop(Exception):
-    pass
+mtd erase angstram-rootfs
+sync
 
+ubiattach -p /dev/mtd2
+mount -t ubifs ubi0:rootfs /mnt
 
-@contextmanager
-def prepare_restore(args):
-    yield
+# restore configuration
+tar xvzf ./config.tar.gz
+mv ./config /mnt/home/usr_config
 
-
-def prepare_system(ssh, path):
-    return True
-
-
-def add_restore_arguments(parser):
-    pass
+umount /mnt
+ubidetach -p /dev/mtd2
+sync

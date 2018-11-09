@@ -18,8 +18,19 @@ import datetime
 import shutil
 import os
 
+RECOVERY_MTDPARTS = 'recovery_mtdparts='
 
-def mtdparts_size(value):
+
+def mtdpart_size_to_int(value):
+    multiplier = {
+        'k': 1024,
+        'm': 1024 * 1024,
+        'g': 1024 * 1024 * 1024
+    }.get(value[-1], None)
+    return multiplier * int(value[:-1]) if multiplier else int(value)
+
+
+def mtdparts_size_to_str(value):
     for unit in ['', 'k', 'm']:
         if (value % 1024) != 0:
             break
@@ -29,12 +40,39 @@ def mtdparts_size(value):
     return '{}{}'.format(value, unit)
 
 
-def ssh_backup(ssh, path):
-    print('Processing miner backup...')
+def parse_mtdparts(value):
+    value = value[len(RECOVERY_MTDPARTS):].strip()
+    start = value.index(':') + 1
+    mtd_index = 0
+    for mtdpart in value[start:].split(','):
+        start = mtdpart.index('(')
+        yield 'mtd{}'.format(mtd_index), mtdpart_size_to_int(mtdpart[:start]), mtdpart[start + 1:-1]
+        mtd_index += 1
+
+
+def parse_uenv(backup_dir):
+    uenv_path = os.path.join(backup_dir, 'uEnv.txt')
+    with open(uenv_path, 'r') as uenv_file:
+        for line in uenv_file:
+            if line.startswith(RECOVERY_MTDPARTS):
+                return line[len(RECOVERY_MTDPARTS):].strip()
+    return None
+
+
+def get_output_dir(path, mac):
+    output_dir = os.path.join(path, '{}-{:%Y-%m-%d}'.format(mac.replace(':', ''), datetime.datetime.now()))
+    os.makedirs(output_dir, exist_ok=True)
+    return output_dir
+
+
+def ssh_mac(ssh):
     with ssh.pipe('cat', '/sys/class/net/eth0/address') as remote:
         mac = next(remote.stdout).strip()
-    backup_dir = os.path.join(path, '{}-{:%Y-%m-%d}'.format(mac.replace(':', ''), datetime.datetime.now()))
-    os.makedirs(backup_dir, exist_ok=True)
+    return mac
+
+
+def ssh_backup(args, ssh, path, mac):
+    print('Backuping miner NAND...')
     mtdparts = []
     with ssh.pipe('cat', '/proc/mtd') as remote:
         next(remote.stdout)
@@ -44,13 +82,30 @@ def ssh_backup(ssh, path):
             size = int(size, 16)
             name = name[1:-1]
             print('Backup {} ({})'.format(dev, name))
-            dump_path = os.path.join(backup_dir, dev + '.bin')
+            dump_path = os.path.join(path, dev + '.bin')
             with open(dump_path, "wb") as local_dump, ssh.pipe('/usr/sbin/nanddump', '/dev/' + dev) as remote_dump:
                 shutil.copyfileobj(remote_dump.stdout, local_dump)
-            mtdparts.append('{}({})'.format(mtdparts_size(size), name))
+            mtdparts.append('{}({})'.format(mtdparts_size_to_str(size), name))
 
-    with open(os.path.join(backup_dir, 'uEnv.txt'), 'w') as uenv:
+    with open(os.path.join(path, 'uEnv.txt'), 'w') as uenv:
         uenv.write('recovery=yes\n'
                    'recovery_mtdparts=mtdparts=pl35x-nand:{}\n'
                    'ethaddr={}\n'.format(','.join(mtdparts), mac))
     return True
+
+
+def ssh_restore(args, ssh, backup_dir, mtdparts):
+    for dev, size, name in mtdparts:
+        print('Restore {} ({})'.format(dev, name))
+        dump_path = os.path.join(backup_dir, dev + '.bin')
+        with open(dump_path, "rb") as local_dump, ssh.pipe('mtd', '-e', name, 'write', '-', name) as remote_dump:
+            shutil.copyfileobj(local_dump, remote_dump.stdin)
+
+    print('Restore finished successfully')
+    if args.sd_recovery:
+        print('Halting system...')
+        print('Please turn off the miner and change jumper to boot it from NAND!')
+        ssh.run('/sbin/halt')
+    else:
+        print('Rebooting to restored firmware...')
+        ssh.run('/sbin/reboot')
