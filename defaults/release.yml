@@ -56,20 +56,22 @@ image_sd:
     - core
     - block_mount
   list:
+    - bos_sd
     - miner_tools
 
 image_nand:
   base:
     - core
   list:
+    - bos_nand
     - miner_tools
     - firmware
 
 image_recovery:
   list:
+    - bos_recovery
     - miner_tools
-    - miner_recovery
 
 image_upgrade:
   list:
-    - miner_upgrade
+    - bos_upgrade
