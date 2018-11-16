@@ -125,8 +125,14 @@ Please install Python first [following this guide](python-win). Then proceed to 
 
 ```bash
 cd braiins-os-firmware_am1-s9-latest/factory-transition
+
+# create bos environment if it does not exist
 mkvirtualenv bos
 setprojectdir .
+
+# select bos environment if it has been created already
+workon bos
+
 pip install -r requirements.txt
 
 python upgrade2bos.py your-miner-hostname-or-ip
@@ -139,11 +145,18 @@ deactivate
 
 Braiins OS supports overt (version-rolling) AsicBoost in accordance with [BIP310](https://github.com/bitcoin/bips/blob/master/bip-0310.mediawiki).
 
-Trying to use AsicBoost on pool that is not supporting it will result in error message (device will not start mining at all). Please note there is no automatic detection present at the moment, meaning AsicBoost can be only turned on/off manualy.
+Trying to use AsicBoost on pool that is not supporting it will result in error message (device will not start mining at all). Please note there is no automatic detection present at the moment, meaning AsicBoost can be only turned on/off manually.
 
-**Antminer S9**: AsicBoost is **turned on by default** and can be turned off in the Services > CGMiner settings.
+### Antminer S9
 
-**DragonMint T1**: AsicBoost is turned on by default and **cannot be turned off**. The device is incapable of mining efficiently without AsicBoost.
+AsicBoost is **turned on by default**. This setting can be changed in:
+
+- web interace Services > CGMiner menu
+- config file ```/etc/cgminer.conf``` by altering the ```multi-version``` value to `1` (disabled) or `4` (enabled)
+
+### DragonMint T1
+
+AsicBoost is **turned on by default** and **cannot be turned off**. The device is incapable of mining efficiently without AsicBoost.
 
 ## Migrating from braiins OS to factory firmware
 
@@ -174,7 +187,8 @@ Firmware upgrade process uses standard mechanism for installing/upgrading softwa
 
 ### Upgrade via web interface
 
-Update the repository information by clicking on *Update lists* button in the System > Software menu. In case the button is missing, the system has to be rebooted!
+- Update the repository information by clicking on *Update lists* button in the System > Software menu. In case the button is missing, the system has to be rebooted!
+- Once done, proceed to update the ```firmware``` package.
 
 ### Upgrade via SSH
 
@@ -218,4 +232,4 @@ Factory reset is as simple as uninstalling the the current firmware package:
 $ opkg remove firmware
 ```
 
-This effectively downgrades your firmware version to whatever it was when the transition to braiins OS has been done for the first time.
+This effectively downgrades your firmware to the version which was initially installed when replacing the stock firmware.
