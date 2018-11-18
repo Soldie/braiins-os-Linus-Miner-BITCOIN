@@ -36,7 +36,8 @@ RESTORE_DIR = 'upgrade'
 RESTORE_NAME = 'restore.sh'
 
 SUPPORTED_IMAGES = [
-    '9974dd88b70cdaaa89a4dd55c25d5bc1'
+    '9974dd88b70cdaaa89a4dd55c25d5bc1',
+    '5b07bd845685d81c092a3b0465f24ef1'
 ]
 
 
