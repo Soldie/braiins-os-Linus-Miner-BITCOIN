@@ -73,9 +73,8 @@ def wait_net_service(server, port, timeout=None):
         except socket.timeout:
             if timeout:
                 return False
-        except socket.error as err:
-            if err.errno not in (errno.ECONNABORTED, errno.ETIMEDOUT, errno.ECONNREFUSED):
-                raise
+        except socket.error:
+            pass
         else:
             s.close()
             return True
