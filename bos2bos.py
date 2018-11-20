@@ -118,7 +118,7 @@ def main(args):
         tar.extractall(path=backup_dir)
         tar.close()
         # find factory_transition with firmware directory
-        firmware_dir = glob(os.path.join(backup_dir, '*', 'factory_transition', 'firmware'))[0]
+        firmware_dir = glob(os.path.join(backup_dir, '**', 'firmware'), recursive=True)[0]
         stage2_dir = os.path.join(firmware_dir, 'stage2')
         os.makedirs(stage2_dir)
         print('Extracting stage2 tarball...')
