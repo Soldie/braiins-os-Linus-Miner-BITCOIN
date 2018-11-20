@@ -65,7 +65,7 @@ def restore_from_dir(args, backup_dir):
     mtdparts = list(backup.parse_mtdparts(mtdparts_params))
 
     if not args.sd_recovery:
-        print("Connecting to remote host...")
+        print('Connecting to remote host...')
         try:
             with SSHManager(args.hostname, USERNAME, PASSWORD) as ssh:
                 ssh.run('fw_setenv', backup.RECOVERY_MTDPARTS[:-1], '"{}"'.format(mtdparts_params))
@@ -75,7 +75,7 @@ def restore_from_dir(args, backup_dir):
             print(str(e))
             return
 
-    print("Connecting to remote host...")
+    print('Connecting to remote host...')
     # do not use host keys because recovery mode has different keys for the same MAC
     with SSHManager(args.hostname, USERNAME, PASSWORD, load_host_keys=False) as ssh:
         platform.restore_firmware(args, ssh, backup_dir, mtdparts)

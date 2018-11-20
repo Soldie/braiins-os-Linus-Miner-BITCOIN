@@ -25,7 +25,7 @@ from urllib.request import Request, urlopen
 from contextlib import contextmanager
 from tempfile import TemporaryFile
 
-from .backup import ssh_backup, ssh_restore
+from .backup import ssh_backup, ssh_restore, ssh_restore_reboot
 from .transfer import Progress
 
 CONFIG_TAR = 'config.tar.gz'
@@ -147,21 +147,16 @@ def restore_bitmain_firmware(args, ssh, backup_dir, mtdparts):
     except subprocess.CalledProcessError as error:
         for line in error.stderr.readlines():
             print(line, end='')
+        raise PlatformStop
     else:
         for line in stdout.readlines():
             print(line, end='')
-        print('Restore was successful!')
-        print('Rebooting...')
-        try:
-            ssh.run('/sbin/reboot')
-        except subprocess.CalledProcessError:
-            # reboot returns exit status -1
-            pass
 
 
 def restore_firmware(args, ssh, backup_dir, mtdparts):
     if args.factory_image:
         restore_bitmain_firmware(args, ssh, backup_dir, mtdparts)
+        ssh_restore_reboot(args, ssh)
     else:
         # use default NAND dump restore
         ssh_restore(args, ssh, backup_dir, mtdparts)

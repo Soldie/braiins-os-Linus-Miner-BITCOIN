@@ -100,8 +100,11 @@ def ssh_restore(args, ssh, backup_dir, mtdparts):
         dump_path = os.path.join(backup_dir, dev + '.bin')
         with open(dump_path, "rb") as local_dump, ssh.pipe('mtd', '-e', name, 'write', '-', name) as remote_dump:
             shutil.copyfileobj(local_dump, remote_dump.stdin)
+    ssh_restore_reboot(args, ssh)
 
-    print('Restore finished successfully')
+
+def ssh_restore_reboot(args, ssh):
+    print('Restore finished successfully!')
     if args.sd_recovery:
         print('Halting system...')
         print('Please turn off the miner and change jumper to boot it from NAND!')
