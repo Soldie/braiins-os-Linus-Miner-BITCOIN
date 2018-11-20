@@ -81,10 +81,11 @@ def ssh_backup(args, ssh, path, mac):
             dev = dev[:-1]
             size = int(size, 16)
             name = name[1:-1]
-            print('Backup {} ({})'.format(dev, name))
-            dump_path = os.path.join(path, dev + '.bin')
-            with open(dump_path, "wb") as local_dump, ssh.pipe('/usr/sbin/nanddump', '/dev/' + dev) as remote_dump:
-                shutil.copyfileobj(remote_dump.stdout, local_dump)
+            if not args.no_nand_backup:
+                print('Backup {} ({})'.format(dev, name))
+                dump_path = os.path.join(path, dev + '.bin')
+                with open(dump_path, "wb") as local_dump, ssh.pipe('/usr/sbin/nanddump', '/dev/' + dev) as remote_dump:
+                    shutil.copyfileobj(remote_dump.stdout, local_dump)
             mtdparts.append('{}({})'.format(mtdparts_size_to_str(size), name))
 
     with open(os.path.join(path, 'uEnv.txt'), 'w') as uenv:

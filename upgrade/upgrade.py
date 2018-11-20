@@ -117,7 +117,9 @@ if __name__ == "__main__":
     parser.add_argument('hostname',
                         help='hostname of miner with original firmware')
     parser.add_argument('--no-backup', action='store_true',
-                        help='skip NAND backup before upgrade')
+                        help='skip miner backup before upgrade')
+    parser.add_argument('--no-nand-backup', action='store_true',
+                        help='skip full NAND backup (config is still being backed up)')
     parser.add_argument('--no-keep-network', action='store_true',
                         help='do not keep miner network configuration (use DHCP)')
     parser.add_argument('--keep-hostname', action='store_true',
