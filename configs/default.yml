@@ -41,7 +41,7 @@ build:
   # supported components: command, spl, uboot, fpga
   sysupgrade:
     zynq-dm1: [command]
-    zynq-am1: [command, spl, fpga]
+    zynq-am1: [command]
 
 remote:
   # default configuration for fetching latest repository
