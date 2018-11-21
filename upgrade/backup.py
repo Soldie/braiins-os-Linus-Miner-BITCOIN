@@ -18,6 +18,10 @@ import datetime
 import shutil
 import os
 
+MODE_SD = 'sd'
+MODE_NAND = 'nand'
+MODE_RECOVERY = 'recovery'
+
 RECOVERY_MTDPARTS = 'recovery_mtdparts='
 
 
@@ -65,10 +69,14 @@ def get_output_dir(path, mac):
     return output_dir
 
 
+def ssh_mode(ssh):
+    stdout, _ = ssh.run('cat', '/etc/bos_mode')
+    return next(stdout).strip()
+
+
 def ssh_mac(ssh):
-    with ssh.pipe('cat', '/sys/class/net/eth0/address') as remote:
-        mac = next(remote.stdout).strip()
-    return mac
+    stdout, _ = ssh.run('cat', '/sys/class/net/eth0/address')
+    return next(stdout).strip()
 
 
 def ssh_backup(args, ssh, path, mac):
@@ -106,7 +114,7 @@ def ssh_restore(args, ssh, backup_dir, mtdparts):
 
 def ssh_restore_reboot(args, ssh):
     print('Restore finished successfully!')
-    if args.sd_recovery:
+    if args.mode == MODE_SD:
         print('Halting system...')
         print('Please turn off the miner and change jumper to boot it from NAND!')
         ssh.run('/sbin/halt')

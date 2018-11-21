@@ -45,22 +45,25 @@ def restore_from_dir(args, backup_dir):
     mtdparts_params = backup.parse_uenv(backup_dir)
     mtdparts = list(backup.parse_mtdparts(mtdparts_params))
 
-    if not args.sd_recovery:
+    host_keys = True
+    while True:
         print('Connecting to remote host...')
-        try:
-            with SSHManager(args.hostname, USERNAME, PASSWORD) as ssh:
+        with SSHManager(args.hostname, USERNAME, PASSWORD, load_host_keys=host_keys) as ssh:
+            args.mode = backup.ssh_mode(ssh)
+            print('Detected bOS mode: {}'.format(args.mode))
+            if args.mode == backup.MODE_NAND:
+                # restart miner to recovery mode with target MTD parts
                 ssh.run('fw_setenv', backup.RECOVERY_MTDPARTS[:-1], '"{}"'.format(mtdparts_params))
                 ssh.run('miner', 'run_recovery')
-            print('Rebooting...', end='')
-            wait_for_port(args.hostname, 22, REBOOT_DELAY)
-        except SSHError as e:
-            print(str(e))
-            return
-
-    print('Connecting to remote host...')
-    # do not use host keys because recovery mode has different keys for the same MAC
-    with SSHManager(args.hostname, USERNAME, PASSWORD, load_host_keys=False) as ssh:
-        platform.restore_firmware(args, ssh, backup_dir, mtdparts)
+                # do not use host keys after restart because recovery mode has different keys for the same MAC
+                host_keys = False
+            else:
+                # restore firmware from SD or recovery mode
+                platform.restore_firmware(args, ssh, backup_dir, mtdparts)
+                break
+        # continue after miner is in the recovery mode
+        print('Rebooting...', end='')
+        wait_for_port(args.hostname, 22, REBOOT_DELAY)
 
 
 def restore_firmware(args, backup_dir):
@@ -93,8 +96,6 @@ if __name__ == "__main__":
                         help='path to directory or tgz file with data for miner restore')
     parser.add_argument('hostname',
                         help='hostname of miner with bOS firmware')
-    parser.add_argument('--sd-recovery', action='store_true',
-                        help='use SD card recovery image with generated uEnv.txt')
 
     platform.add_restore_arguments(parser)
 
