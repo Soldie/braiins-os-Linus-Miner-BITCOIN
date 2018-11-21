@@ -19,4 +19,10 @@ MINER_HWID=$(dd if=/dev/urandom bs=1 count=12 2>/dev/null | base64 | tr +/ ab)
 cd firmware
 
 # run stage 1 upgrade process
-/bin/sh stage1.sh "$MINER_HWID" >/dev/null
+if ! /bin/sh stage1.sh "$MINER_HWID" yes yes >/dev/null; then
+	# clean up system to left it untouched
+	rm /usr/sbin/fw_setenv
+	rm /usr/sbin/fw_printenv
+	rm /lib/ld-musl-armhf.so.1
+	exit 1
+fi
