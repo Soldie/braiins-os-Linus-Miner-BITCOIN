@@ -27,7 +27,7 @@ import upgrade.backup as backup
 
 from upgrade.platform import PlatformStop
 from upgrade.ssh import SSHManager, SSHError
-from upgrade.transfer import upload_local_files
+from upgrade.transfer import upload_local_files, wait_for_port
 
 USERNAME = 'root'
 PASSWORD = None
@@ -36,6 +36,8 @@ SYSTEM_DIR = 'system'
 BACKUP_DIR = 'backup'
 SOURCE_DIR = 'firmware'
 TARGET_DIR = '/tmp/firmware'
+
+REBOOT_DELAY = (3, 5)
 
 
 class UpgradeStop(Exception):
@@ -98,16 +100,23 @@ def main(args):
         except subprocess.CalledProcessError as error:
             for line in error.stderr.readlines():
                 print(line, end='')
+            raise UpgradeStop
         else:
             for line in stdout.readlines():
                 print(line, end='')
             print('Upgrade was successful!')
-            print('Rebooting...')
+            print('Rebooting...', end='')
             try:
                 ssh.run('/sbin/reboot')
             except subprocess.CalledProcessError:
                 # reboot returns exit status -1
                 pass
+
+    if args.no_wait:
+        print()
+        print('Wait for 120 seconds before the system becomes fully operational!')
+    else:
+        wait_for_port(args.hostname, 80, REBOOT_DELAY)
 
 
 if __name__ == "__main__":
@@ -124,6 +133,8 @@ if __name__ == "__main__":
                         help='do not keep miner network configuration (use DHCP)')
     parser.add_argument('--keep-hostname', action='store_true',
                         help='keep miner hostname')
+    parser.add_argument('--no-wait', action='store_true',
+                        help='do not wait until system is fully upgraded')
 
     # parse command line arguments
     args = parser.parse_args(sys.argv[1:])

@@ -19,7 +19,6 @@
 
 import argparse
 import tarfile
-import time
 import sys
 import os
 
@@ -28,7 +27,7 @@ import upgrade.backup as backup
 
 from upgrade.platform import PlatformStop
 from upgrade.ssh import SSHManager, SSHError
-from upgrade.transfer import wait_net_service
+from upgrade.transfer import wait_for_port
 from tempfile import TemporaryDirectory
 from glob import glob
 
@@ -42,24 +41,6 @@ class RestoreStop(Exception):
     pass
 
 
-def wait(delay):
-    for _ in range(delay):
-        time.sleep(1)
-        print('.', end='')
-        sys.stdout.flush()
-
-
-def wait_for_reboot(hostname, delay):
-    print('Rebooting...', end='')
-    delay_before, delay_after = delay
-    wait(delay_before)
-    while not wait_net_service(hostname, 22, 1):
-        print('.', end='')
-        sys.stdout.flush()
-    wait(delay_after)
-    print()
-
-
 def restore_from_dir(args, backup_dir):
     mtdparts_params = backup.parse_uenv(backup_dir)
     mtdparts = list(backup.parse_mtdparts(mtdparts_params))
@@ -70,7 +51,8 @@ def restore_from_dir(args, backup_dir):
             with SSHManager(args.hostname, USERNAME, PASSWORD) as ssh:
                 ssh.run('fw_setenv', backup.RECOVERY_MTDPARTS[:-1], '"{}"'.format(mtdparts_params))
                 ssh.run('miner', 'run_recovery')
-            wait_for_reboot(args.hostname, REBOOT_DELAY)
+            print('Rebooting...', end='')
+            wait_for_port(args.hostname, 22, REBOOT_DELAY)
         except SSHError as e:
             print(str(e))
             return

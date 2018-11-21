@@ -18,7 +18,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import socket
-import errno
+import time
+import sys
 import os
 
 from progress.bar import Bar
@@ -78,3 +79,21 @@ def wait_net_service(server, port, timeout=None):
         else:
             s.close()
             return True
+
+
+def wait(delay, char):
+    for _ in range(delay):
+        time.sleep(1)
+        print(char, end='')
+        sys.stdout.flush()
+
+
+def wait_for_port(server, port, delay, char=None):
+    char = char or '.'
+    delay_before, delay_after = delay
+    wait(delay_before, char)
+    while not wait_net_service(server, port, 1):
+        print(char, end='')
+        sys.stdout.flush()
+    wait(delay_after, char)
+    print()
