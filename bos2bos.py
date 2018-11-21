@@ -18,10 +18,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import argparse
+import subprocess
 import tarfile
 import shutil
 import sys
 import os
+
+import miner.hwid as hwid
 
 from miner.ssh import SSHManager
 from tempfile import TemporaryDirectory
@@ -30,6 +33,10 @@ from glob import glob
 
 USERNAME = 'root'
 PASSWORD = None
+
+MODE_SD = 'sd'
+MODE_NAND = 'nand'
+MODE_RECOVERY = 'recovery'
 
 MINER_CFG_CONFIG = '/tmp/miner_cfg.config'
 
@@ -53,9 +60,37 @@ def mtd_erase(ssh, mtd):
     ssh.run(['mtd', 'erase', mtd])
 
 
+def get_mode(ssh):
+    try:
+        stdout, _ = ssh.run('cat', '/etc/bos_mode')
+        return next(stdout).strip()
+    except subprocess.CalledProcessError:
+        # fallback for old releases
+        try:
+            ssh.run('test', '-c', '/dev/ubi0')
+        except subprocess.CalledProcessError:
+            # SD or recovery mode (NAND can be fully accessed)
+            return MODE_SD
+        else:
+            return MODE_NAND
+
+
 def get_env(ssh, name):
     stdout, _ = ssh.run('fw_printenv', '-n', name)
     return next(stdout).strip()
+
+
+def get_ethaddr(ssh):
+    stdout, _ = ssh.run('cat', '/sys/class/net/eth0/address')
+    return next(stdout).strip()
+
+
+def check_miner_cfg(ssh):
+    _, stderr = ssh.run('fw_printenv', '-c', MINER_CFG_CONFIG)
+    for _ in stderr:
+        return False
+    else:
+        return True
 
 
 def set_miner_cfg(ssh, name, value):
@@ -75,6 +110,17 @@ def firmware_deploy(args, firmware_dir, stage2_dir):
 
     print("Connecting to remote host...")
     with SSHManager(args.hostname, USERNAME, PASSWORD) as ssh:
+        # detect mode
+        mode = get_mode(ssh)
+        print("Detected bOS mode: {}".format(mode))
+
+        print("Uploading miner configuration file...")
+        sftp = ssh.open_sftp()
+        sftp.put(miner_cfg_config, MINER_CFG_CONFIG)
+        sftp.close()
+
+        rewrite_miner_cfg = not check_miner_cfg(ssh)
+
         mdt_write(ssh, boot_bin, 'boot', 'SPL')
         mdt_write(ssh, uboot_img, 'uboot', 'U-Boot')
         mdt_write(ssh, fit_itb, 'recovery', 'recovery FIT image')
@@ -83,31 +129,41 @@ def firmware_deploy(args, firmware_dir, stage2_dir):
         # original firmware has different recovery partition without SPL bootloader
         if os.path.isfile(boot_bin_gz):
             mdt_write(ssh, boot_bin_gz, 'recovery', 'SPL bootloader', erase=False, offset=0x1500000)
-        mdt_write(ssh, miner_cfg_bin, 'miner_cfg', 'miner configuration')
 
-        print("Uploading miner configuration file...")
-        sftp = ssh.open_sftp()
-        sftp.put(miner_cfg_config, MINER_CFG_CONFIG)
-        sftp.close()
+        if rewrite_miner_cfg:
+            mdt_write(ssh, miner_cfg_bin, 'miner_cfg', 'miner configuration')
 
-        # get environment variables for current firmware
-        current_fw = int(get_env(ssh, 'firmware'))
-        ethaddr = get_env(ssh, 'ethaddr')
-        miner_hwid = get_env(ssh, 'miner_hwid')
+            ethaddr = args.mac or get_ethaddr(ssh)
+            miner_hwid = hwid.generate()
 
-        print("Setting miner configuration...")
-        set_miner_cfg(ssh, 'ethaddr', ethaddr)
-        set_miner_cfg(ssh, 'miner_hwid', miner_hwid)
+            print("Setting default miner configuration...")
+            set_miner_cfg(ssh, 'ethaddr', ethaddr)
+            set_miner_cfg(ssh, 'miner_hwid', miner_hwid)
+        elif args.mac:
+            print("Overriding MAC address...")
+            set_miner_cfg(ssh, 'ethaddr', args.mac)
 
         # erase rest of partitions
-        mtds_for_erase = ['fpga1', 'fpga2', 'uboot_env', 'firmware{}'.format((current_fw % 2) + 1)]
+        mtds_for_erase = ['fpga1', 'fpga2', 'uboot_env']
+        if mode == MODE_NAND:
+            # active partition cannot be erased
+            current_fw = int(get_env(ssh, 'firmware'))
+            mtds_for_erase.append('firmware{}'.format((current_fw % 2) + 1))
+        else:
+            mtds_for_erase.extend(['firmware1', 'firmware2'])
+
         for mtd in mtds_for_erase:
             mtd_erase(ssh, mtd)
 
-        # reboot system to finish upgrade
-        print("Rebooting system...")
         ssh.run('sync')
-        ssh.run('reboot')
+
+        if mode == MODE_SD:
+            print('Halting system...')
+            print('Please turn off the miner and change jumper to boot it from NAND!')
+            ssh.run('halt')
+        else:
+            print('Rebooting to restored firmware...')
+            ssh.run('reboot')
 
 
 def main(args):
@@ -136,6 +192,8 @@ if __name__ == "__main__":
                         help='URL to tarball with transitional bos firmware')
     parser.add_argument('hostname',
                         help='hostname of miner with bos firmware')
+    parser.add_argument('--mac',
+                        help='override MAC address')
 
     # parse command line arguments
     args = parser.parse_args(sys.argv[1:])
