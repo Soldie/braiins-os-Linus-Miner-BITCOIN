@@ -103,26 +103,7 @@ version of firmware and is used during auto recovery process.
 | rootfs | *SquashFS*         |
 | data   | *UBIFS*            |
 
-## Miner Signalization (LED)
 
-A miner LED signalization depends on operational mode. There are two modes (*recovery* and *normal*) which are signaled
-by a green LED on the front panel. A red LED on the front panel has different meaning based on operational mode. A red
-LED on control board (inside) always shows *heartbeat* (flashes at a load average based rate).
-
-### Recovery Mode
-
-The recovery mode is signaled by **flashing green LED** on the front panel. The **red LED** represents access to a NAND
-disk and flashing during factory reset when data are written to the NAND.
-
-### Normal Mode
-
-The normal mode is signaled by **solid green LED** on the front panel. The **red LED** on the front panel has the
-following meaning:
-
-* **on** - *cgminer* or *cgminer_monitor* are not running
-* **slow flashing** - hash rate is bellow 80% of expected hash rate
-* **off** - *cgminer* running and hash rate above 80% of expected hash rate
-* **fast flashing** - LED override requested by user (`miner fault_light on`)
 
 ## SD Boot
 

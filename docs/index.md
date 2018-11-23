@@ -141,6 +141,27 @@ deactivate
 
 # Basic user's guide
 
+## Miner Signalization (LED)
+
+Miner LED signalization depends on its operational mode. There are two modes (*recovery* and *normal*) which are signaled by the **green** and **red LED** on the front panel. The LED on the control board (inside) always shows *heartbeat* (flashes at a load average based rate).
+
+
+### Recovery Mode
+
+The recovery mode is signaled by **flashing green LED** (50 ms on, 950 ms off) on the front panel. The **red LED** represents access to a NAND
+disk and flashing during factory reset when data is written to NAND.
+
+### Normal Mode
+
+The normal mode state is signaled by the combination of the front panel **red** and **green LED** as specified in the table below:
+
+| red LED | green LED | meaning |
+| ------- | --------- | ------- |
+| on | off | *cgminer* or *cgminer_monitor* are not running |
+| slow flashing | off | hash rate is below 80% of expected hash rate or the miner cannot connect to any pool (all pools are dead) |
+| off | very slow flashing (1 sec on, 1 sec off) | *miner* is operational and hash rate above 80 % of expected hash rate |
+| fast flashing | N/A | LED override requested by user (`miner fault_light on`) |
+
 ## AsicBoost support
 
 Braiins OS supports overt (version-rolling) AsicBoost in accordance with [BIP310](https://github.com/bitcoin/bips/blob/master/bip-0310.mediawiki).
