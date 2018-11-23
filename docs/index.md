@@ -254,3 +254,33 @@ $ opkg remove firmware
 ```
 
 This effectively downgrades your firmware to the version which was initially installed when replacing the stock firmware.
+
+## Recovery Mode
+
+The recovery mode can be invoked by different ways:
+
+* *IP SET button* - hold it for *3s* until green LED flashes
+* *SD card* - first partition with FAT contains file *uEnv.txt* with a line **recovery=yes**
+* *miner utility* - call ```miner run_recovery``` from the miner's command line
+
+## Factory Reset
+
+The factory reset can be invoked by different ways:
+
+* *IP SET button* - hold it for *10s* until red LED flashes
+* *SD card* - first partition with FAT contains file *uEnv.txt* with a line **factory_reset=yes**
+* *miner utility* - call ```miner factory_reset``` from the miner's command line
+
+## Identifying a miner in a farm
+
+The local miner utility can also be used to identify a particular device by enabling aggressive blinking of **red LED**:
+
+```bash
+$ miner fault_light on
+```
+
+Similarly to disable the LED run:
+
+```bash
+$ miner fault_light off
+```
