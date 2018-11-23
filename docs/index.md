@@ -197,7 +197,7 @@ If anything goes wrong and your device seems unbootable, you can use the previou
 - Run (*on Windows, use `python` command instead of `python3`*):
 ```
 cd braiins-os-firmware_am1-s9-latest/factory-transition
-python3 restore.py --sd-recovery backup/2ce9c4aab53c-2018-09-19/ your-miner-hostname-or-ip
+python3 restore2factory.py backup/2ce9c4aab53c-2018-09-19/ your-miner-hostname-or-ip
 ```
 
 After the script finishes, wait a few minutes and adjust jumper to boot from NAND (internal memory) afterwards.
