@@ -1,26 +1,15 @@
 # Table of contents
 
-- [Overview](#overview)
-- [Initial steps](#initial-steps)
-- [Method 1: Creating bootable SD card image  (Antminer S9i example)](#method-1--creating-bootable-sd-card-image---antminer-s9i-example-)
-- [Method 2: Migrating from factory firmware to braiins OS](#method-2--migrating-from-factory-firmware-to-braiins-os)
-- [Basic user's guide](#basic-user-s-guide)
-  * [AsicBoost support](#asicboost-support)
-  * [Migrating from braiins OS to factory firmware](#migrating-from-braiins-os-to-factory-firmware)
-  * [Recovering bricked (unbootable) devices using SD card](#recovering-bricked--unbootable--devices-using-sd-card)
-  * [Firmware upgrade](#firmware-upgrade)
-  * [Factory reset (to initial braiins OS version)](#factory-reset--to-initial-braiins-os-version-)
-
 # Overview
 
-This document is a quick-start guide on how to install braiins OS on your mining device using a Linux computer.
-There are two ways how to test and use braiins OS:
+This document is a quick-start guide on how to install Braiins OS on your mining device using a Linux computer.
+There are two ways how to test and use Braiins OS:
 
-1. Boot from SD card with braiins OS image, effectively keeping the stock firmware in the built-in flash memory. In case you encounter any issues, you can simply boot the stock firmware from the internal memory. This is a safe way we suggest to start with.
+1. Boot from SD card with Braiins OS image, effectively keeping the stock firmware in the built-in flash memory. In case you encounter any issues, you can simply boot the stock firmware from the internal memory. This is a safe way we suggest to start with.
 
-2. Permanently reflash the stock firmware, effectively replacing the manufacturer’s firmware completely with braiins OS. In this method the only way how to go back to the default stock setup is to restore the manufacturer’s firmware from a backup that you create during install.
+2. Permanently reflash the stock firmware, effectively replacing the manufacturer’s firmware completely with Braiins OS. In this method the only way how to go back to the default stock setup is to restore the manufacturer’s firmware from a backup that you create during install.
 
-Due to aforementioned reasons, it is higly recommended to install braiins OS firmware **only on devices with SD card slots**.
+Due to aforementioned reasons, it is highly recommended to install Braiins OS firmware **only on devices with SD card slots**.
 
 You will need:
 
@@ -30,44 +19,57 @@ You will need:
 
 *Note: Commands used in this manual are instructional. You might need to adjust file paths and names adequately.*
 
-# Initial steps
+# Installing Braiins OS for the First Time (Replacing Factory Firmware with Braiins OS)
 
-Download the latest released firmware images + signatures from: [https://feeds.braiins-os.org/](https://feeds.braiins-os.org/)
+The steps describe below need to be done only **the very first time* you are installing Braiins OS on a device. You will be using so called *transitional firmware images* for this purpose.
 
+## Initial Steps
+
+Download the latest released transitional firmware images + signatures from: [https://feeds.braiins-os.org/](https://feeds.braiins-os.org/)
 
 The table below outlines correspondence between firmware image archive and a particular hardware type.
 
 | Firmware prefix | Hardware |
 | --- | --- |
-| braiins-os-firmware_zynq-am1-s9_*.tar.bz2 | Antminer S9 |
-| braiins-os-firmware_zynq-dm1-g9_*.tar.bz2 | Dragon Mint T1 with G9 control board |
-| braiins-os-firmware_zynq-dm1-g19_*.tar.bz2 | Dragon Mint T1 with G19 control board |
+| braiins-os_am1-s9_*.tar.bz2 | Antminer S9 |
+| braiins-os_dm1-g9_*.tar.bz2 | Dragon Mint T1 with G9 control board | |
+| braiins-os_dm1-g19_*.tar.bz2 | Dragon Mint T1 with G19 control board | |
 
 You can check the downloaded file for its authenticity and integrity. The image signature can be verified by [GPG](https://www.gnupg.org/documentation/):
 
 ```bash
 gpg2 --search-keys release@braiins.cz
-for i in ./braiins-os-firmware_*.tar.bz2; do gpg2 --verify $i.asc; done
+for i in ./braiins-os_*asc; do gpg2 --verify $i; done
 ```
 
 You should see something like:
 
 ```
-gpg: assuming signed data in './braiins-os-firmware_zynq-am1-s9_2018-09-22-0-853643de.tar.bz2'
-gpg: Signature made Sat 22 Sep 2018 02:27:03 PM CEST using RSA key ID 616D9548
+gpg: assuming signed data in './braiins-os_am1-s9_2018-10-24-0-9e5687a2.tar.bz2'
+.
+.
 gpg: Good signature from "Braiins Systems Release Key (Key used for signing software made by Braiins Systems) <release@braiins.cz>" [ultimate]
 ```
 
-Unpack the firmware image using standard file archiver software (e.g. 7-Zip, WinRAR) or the folllowing command (Linux):
+Unpack the selected (or all) transitional firmware images using standard file archiver software (e.g. 7-Zip, WinRAR) or the following command (Linux):
 
 ```bash
-for i in  ./braiins-os-firmware_*.tar.bz2; do tar xvjf $i; done
+for i in  ./braiins-os_*.tar.bz2; do tar xvjf $i; done
 ```
 
-The downloaded firmware image contains SD card components as well has a transitional firmware that can be flashed into device's on-board flash memory.
+### Transitional firmware image types
+
+The table below explains the use of individual transitional firmware images
+
+| Firmware prefix | Hardware |
+| --- | --- |
+| braiins-os_HARDWARE_TYPE_**sd**_VERSION.img | SD card image for testing on hardware, recovering a *bricked* machine etc. |
+| braiins-os_HARDWARE_TYPE_**ssh**_VERSION.tar.bz2 | transitional firmware for upgrading from factory firmware that has **ssh** access |
+| braiins-os_HARDWARE_TYPE_**telnet**_VERSION.tar.bz2 | transitional firmware for upgrading from factory firmware that provides **telnet** access |
+| braiins-os_HARDWARE_TYPE_**web**_VERSION.{vendor specific extension} | transitional firmware for upgrading from factory firmware via the **factory firmware web interface**. The exact file extension depends on particular hardware type |
 
 
-# Method 1: Creating bootable SD card image  (Antminer S9i example)
+## Phase 1: Creating Bootable SD Card Image  (Antminer S9i example)
 
 Insert an empty SD card (with minimum capacity of 32 MB) into your computer and flash the image onto the SD card.
 
@@ -81,37 +83,36 @@ Insert an empty SD card (with minimum capacity of 32 MB) into your computer and 
 
 ### Using bash (Linux)
 
-Identify SD cards block device (e.g. by ```lsblk```) and run the following commands:
+Identify SD cards block device (e.g. by ```lsblk```) and run the following commands (replace ```VERSION``` with the current latest release):
 
 ```
-cd braiins-os-firmware_am1-s9-latest;
-sudo dd if=sd.img of=/dev/your-sd-card-block-device
+sudo dd if=braiins-os_am1-s9_sd_VERSION.img of=/dev/your-sd-card-block-device
 sync
 ```
 
-## Adjusting MAC address
-If you know the MAC address of your device, mount the SD card and adjust the MAC address. in ```uEnv.txt``` (most desktop Linux systems have automount capabilities once you reinsert the card into your reader). The ```uEnv.txt``` is environment for the bootloader and resides in the first (FAT) partition of the SD card. That way, once the device boots with braiins OS, it would have the same IP address as it had with the factory firmware.
+### Adjusting MAC Address
+If you know the MAC address of your device, mount the SD card and adjust the MAC address. in ```uEnv.txt``` (most desktop Linux systems have automount capabilities once you reinsert the card into your reader). The ```uEnv.txt``` is environment for the bootloader and resides in the first (FAT) partition of the SD card. That way, once the device boots with Braiins OS, it would have the same IP address as it had with the factory firmware.
 
-## Booting the device from SD card
+### Booting the Device from SD Card
 - Unmount the SD card
 - Adjust jumper to boot from SD card (instead of NAND memory):
    - [Antminer S9](s9)
    - [Dragon Mint T1](dm1)
 - Insert it into the device, start the device.
-- After a moment, you should be able to access braiins OS interface on device IP address.
+- After a moment, you should be able to access Braiins OS interface on device IP address.
 
 
-# Method 2: Migrating from factory firmware to braiins OS
+## Phase 2: Permanently Migrating from Factory Firmware to Braiins OS
 
 Once the SD card works, it is very safe to attempt flashing the built-in flash memory as there will always be a way to recover the factory firmware.
 Follow the steps below. The tool creates a backup of the original firmware in the ```backup``` folder. It is important to **keep the backup safe** to resolve any potential future issues.
 
-Below are commands to replace original factory firmware with braiins OS. The tool attempts to login to the machine via SSH, therefore you maybe prompted for a password.
+Below are commands to replace original factory firmware with Braiins OS using the SSH variant. The tool attempts to login to the machine via SSH, therefore you maybe prompted for a password.
 
-## Using Linux
+### Using Linux
 
 ```bash
-cd braiins-os-firmware_am1-s9-latest/factory-transition
+cd braiins-os_am1-s9_ssh_VERSION
 virtualenv --python=/usr/bin/python3 .env
 source .env/bin/activate
 pip install -r ./requirements.txt
@@ -119,12 +120,12 @@ pip install -r ./requirements.txt
 python3 upgrade2bos.py your-miner-hostname-or-ip
 ```
 
-## Using Windows
+### Using Windows
 
 Please install Python first [following this guide](python-win). Then proceed to run the following commands consecutively:
 
 ```bash
-cd braiins-os-firmware_am1-s9-latest/factory-transition
+cd braiins-os_am1-s9_ssh_VERSION
 
 # create bos environment if it does not exist
 mkvirtualenv bos
@@ -172,14 +173,14 @@ Trying to use AsicBoost on pool that is not supporting it will result in error m
 
 AsicBoost is **turned on by default**. This setting can be changed in:
 
-- web interace Services > CGMiner menu
+- web interface Services > CGMiner menu
 - config file ```/etc/cgminer.conf``` by altering the ```multi-version``` value to `1` (disabled) or `4` (enabled)
 
 ### DragonMint T1
 
 AsicBoost is **turned on by default** and **cannot be turned off**. The device is incapable of mining efficiently without AsicBoost.
 
-## Migrating from braiins OS to factory firmware
+## Migrating from Braiins OS to factory firmware
 
 Restoring the original factory firmware requires issuing the command below. Please, note that the previously created backup needs to be available.
 
@@ -189,14 +190,14 @@ Restoring the original factory firmware requires issuing the command below. Plea
 python3 restore2factory.py backup/backup-id-date/ your-miner-hostname-or-ip
 ```
 
-## Recovering bricked (unbootable) devices using SD card
+## Recovering Bricked (unbootable) Devices Using SD Card
 
-If anything goes wrong and your device seems unbootable, you can use the previously created SD card image to recover it (flash the manufacturer’s firmware to the built-in flash memory):
+If anything goes wrong and your device seems unbootable, you can use the previously created SD card image to recover original firmware from the  manufacturer:
 
-- Follow the steps in *Creating bootable SD card image* to boot the device
+- Follow the steps in *Creating Bootable SD Card Image* to boot the device
 - Run (*on Windows, use `python` command instead of `python3`*):
 ```
-cd braiins-os-firmware_am1-s9-latest/factory-transition
+cd braiins-os_am1-s9_ssh_VERSION
 python3 restore2factory.py backup/2ce9c4aab53c-2018-09-19/ your-miner-hostname-or-ip
 ```
 
@@ -245,7 +246,7 @@ Connection to 10.33.0.166 closed by remote host.
 Connection to 10.33.0.166 closed.
 ```
 
-## Factory reset (to initial braiins OS version)
+## Factory reset (to initial Braiins OS version)
 
 Factory reset is as simple as uninstalling the the current firmware package:
 
