@@ -1,13 +1,34 @@
 # Table of contents
 
+   * [Overview](#overview)
+   * [Installing Braiins OS for the First Time (Replacing Factory Firmware with Braiins OS)](#installing-braiins-os-for-the-first-time-replacing-factory-firmware-with-braiins-os)
+      * [Initial Steps](#initial-steps)
+      * [Phase 1: Creating Bootable SD Card Image (Antminer S9 example)](#phase-1-creating-bootable-sd-card-image-antminer-s9-example)
+      * [Phase 2: Permanently Migrating from Factory Firmware to Braiins OS](#phase-2-permanently-migrating-from-factory-firmware-to-braiins-os)
+   * [Basic user's guide](#basic-users-guide)
+      * [Miner Signalization (LED)](#miner-signalization-led)
+         * [Recovery Mode](#recovery-mode)
+         * [Normal Mode](#normal-mode)
+         * [Identifying a miner in a farm](#identifying-a-miner-in-a-farm)
+      * [AsicBoost support](#asicboost-support)
+      * [Migrating from Braiins OS to factory firmware](#migrating-from-braiins-os-to-factory-firmware)
+      * [Recovering Bricked (unbootable) Devices Using SD Card](#recovering-bricked-unbootable-devices-using-sd-card)
+      * [Firmware upgrade](#firmware-upgrade)
+         * [Upgrade via web interface](#upgrade-via-web-interface)
+         * [Upgrade via SSH](#upgrade-via-ssh)
+      * [Reset to initial Braiins OS version](#reset-to-initial-braiins-os-version)
+      * [Recovery Mode](#recovery-mode-1)
+      * [Factory Reset](#factory-reset)
+
+
 # Overview
 
-This document is a quick-start guide on how to install Braiins OS on your mining device using a Linux computer.
+This document is a quick-start guide on how to install Braiins OS on your mining device.
 There are two ways how to test and use Braiins OS:
 
-1. Boot from SD card with Braiins OS image, effectively keeping the stock firmware in the built-in flash memory. In case you encounter any issues, you can simply boot the stock firmware from the internal memory. This is a safe way we suggest to start with.
+1. **Boot from SD card** with Braiins OS image, effectively keeping the stock firmware in the built-in flash memory. In case you encounter any issues, you can simply boot the stock firmware from the internal memory. This is a safe way we suggest to start with.
 
-2. Permanently reflash the stock firmware, effectively replacing the manufacturer’s firmware completely with Braiins OS. In this method the only way how to go back to the default stock setup is to restore the manufacturer’s firmware from a backup that you create during install.
+2. **Permanently reflash the stock firmware**, effectively replacing the manufacturer’s firmware completely with Braiins OS. In this method the only way how to go back to the default stock setup is to restore the manufacturer’s firmware from a backup that you create during install.
 
 Due to aforementioned reasons, it is highly recommended to install Braiins OS firmware **only on devices with SD card slots**.
 
@@ -21,7 +42,7 @@ You will need:
 
 # Installing Braiins OS for the First Time (Replacing Factory Firmware with Braiins OS)
 
-The steps describe below need to be done only **the very first time* you are installing Braiins OS on a device. You will be using so called *transitional firmware images* for this purpose.
+The steps describe below need to be done only **the very first time** you are installing Braiins OS on a device. You will be using so called *transitional firmware images* for this purpose.
 
 ## Initial Steps
 
@@ -31,7 +52,7 @@ The table below outlines correspondence between firmware image archive and a par
 
 | Firmware prefix | Hardware |
 | --- | --- |
-| braiins-os_am1-s9_*.tar.bz2 | Antminer S9 |
+| braiins-os_am1-s9_*.tar.bz2 | Antminer S9, S9i |
 | braiins-os_dm1-g9_*.tar.bz2 | Dragon Mint T1 with G9 control board | |
 | braiins-os_dm1-g19_*.tar.bz2 | Dragon Mint T1 with G19 control board | |
 
@@ -69,7 +90,7 @@ The table below explains the use of individual transitional firmware images
 | braiins-os_HARDWARE_TYPE_**web**_VERSION.{vendor specific extension} | transitional firmware for upgrading from factory firmware via the **factory firmware web interface**. The exact file extension depends on particular hardware type |
 
 
-## Phase 1: Creating Bootable SD Card Image  (Antminer S9i example)
+## Phase 1: Creating Bootable SD Card Image (Antminer S9 example)
 
 Insert an empty SD card (with minimum capacity of 32 MB) into your computer and flash the image onto the SD card.
 
@@ -163,6 +184,20 @@ The normal mode state is signaled by the combination of the front panel **red** 
 | off | very slow flashing (1 sec on, 1 sec off) | *miner* is operational and hash rate above 80 % of expected hash rate |
 | fast flashing | N/A | LED override requested by user (`miner fault_light on`) |
 
+### Identifying a miner in a farm
+
+The local miner utility can also be used to identify a particular device by enabling aggressive blinking of **red LED**:
+
+```bash
+$ miner fault_light on
+```
+
+Similarly to disable the LED run:
+
+```bash
+$ miner fault_light off
+```
+
 ## AsicBoost support
 
 Braiins OS supports overt (version-rolling) AsicBoost in accordance with [BIP310](https://github.com/bitcoin/bips/blob/master/bip-0310.mediawiki).
@@ -246,15 +281,13 @@ Connection to 10.33.0.166 closed by remote host.
 Connection to 10.33.0.166 closed.
 ```
 
-## Factory reset (to initial Braiins OS version)
+## Reset to initial Braiins OS version
 
-Factory reset is as simple as uninstalling the the current firmware package:
+Uninstall the the current firmware package to downgrade your firmware to the version which was initially installed when replacing the stock firmware.
 
 ```bash
 $ opkg remove firmware
 ```
-
-This effectively downgrades your firmware to the version which was initially installed when replacing the stock firmware.
 
 ## Recovery Mode
 
@@ -271,17 +304,3 @@ The factory reset can be invoked by different ways:
 * *IP SET button* - hold it for *10s* until red LED flashes
 * *SD card* - first partition with FAT contains file *uEnv.txt* with a line **factory_reset=yes**
 * *miner utility* - call ```miner factory_reset``` from the miner's command line
-
-## Identifying a miner in a farm
-
-The local miner utility can also be used to identify a particular device by enabling aggressive blinking of **red LED**:
-
-```bash
-$ miner fault_light on
-```
-
-Similarly to disable the LED run:
-
-```bash
-$ miner fault_light off
-```
