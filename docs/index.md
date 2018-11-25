@@ -5,6 +5,7 @@ layout: page
 # Table of contents
 
    * [Overview](#overview)
+   * [Braiins OS Versioning Scheme](#braiins-os-versioning-scheme)
    * [Installing Braiins OS for the First Time (Replacing Factory Firmware with Braiins OS)](#installing-braiins-os-for-the-first-time-replacing-factory-firmware-with-braiins-os)
       * [Initial Steps](#initial-steps)
       * [Phase 1: Creating Bootable SD Card Image (Antminer S9 example)](#phase-1-creating-bootable-sd-card-image-antminer-s9-example)
@@ -42,6 +43,21 @@ You will need:
 * SD card (optional but recommended method)
 
 *Note: Commands used in this manual are instructional. You might need to adjust file paths and names adequately.*
+
+# Braiins OS Versioning Scheme
+
+Each release contains a version number that consists of YYYY-MM-DD-P, where:
+
+| Field | Meaning |
+| --- | --- |
+| YYYY | 4 digit release year |
+| MM | 2 digit month |
+| DD | 2 digit day number |
+| P | single digit patch level - in case there was a hot fix re-release on the same day |
+
+The version number is also encoded in all artifacts that are available for download.
+
+In addition to the above, each major Braiins OS release has a code name (e.g. wolfram, hafnium, etc.).
 
 # Installing Braiins OS for the First Time (Replacing Factory Firmware with Braiins OS)
 
