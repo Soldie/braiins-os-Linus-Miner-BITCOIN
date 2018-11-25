@@ -130,34 +130,3 @@ $ wget ${url}/firmware-xyz.tar
 # call standard LEDE sysupgade utility
 $ sysupgrade firmware-xyz.tar
 ```
-
-## Recovery Mode
-
-The recovery mode can be invoked by different ways:
-
-* *IP SET button* - hold it for *3s* until green LED flashes
-* *SD card* - first partition with FAT contains file *uEnv.txt* with a line **recovery=yes** 
-* *miner utility* - call `miner run_recovery` from the miner's command line
-
-## Factory Reset
-
-The factory reset can be invoked by different ways:
-
-* *IP SET button* - hold it for *10s* until red LED flashes
-* *SD card* - first partition with FAT contains file *uEnv.txt* with a line **factory_reset=yes** 
-* *miner utility* - call `miner factory_reset` from the miner's command line
-
-## Miner Tools
-
-```
-usage: miner [-h] {factory_reset,run_recovery,fault_light} ...
-
-positional arguments:
-  {factory_reset,run_recovery,light}
-    factory_reset       reboot and initiate factory reset
-    run_recovery        reboot to recovery mode
-    fault_light         turn on or off miner's fault LED
-
-optional arguments:
-  -h, --help            show this help message and exit
-```

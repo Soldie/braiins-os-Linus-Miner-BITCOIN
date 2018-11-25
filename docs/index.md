@@ -22,7 +22,6 @@ layout: page
          * [Upgrade via SSH](#upgrade-via-ssh)
       * [Reset to initial Braiins OS version](#reset-to-initial-braiins-os-version)
       * [Recovery Mode](#recovery-mode-1)
-      * [Factory Reset](#factory-reset)
 
 
 # Overview
@@ -293,18 +292,18 @@ Uninstall the the current firmware package to downgrade your firmware to the ver
 $ opkg remove firmware
 ```
 
+In addition to the above, reset to initial Braiins OS version can also be initiated as follows:
+
+* *IP SET button* - hold it for *10s* until red LED flashes
+* *SD card* - first partition with FAT contains file *uEnv.txt* with a line **factory_reset=yes**
+* *miner utility* - call ```miner factory_reset``` from the miner's command line
+
 ## Recovery Mode
+
+Users doesn't have to typically enter recovery mode while using Braiins OS in a standard way. The ```bos2factory.py``` downgrade process uses it to restore the original factory firmware from the manufacturer. It can also be useful when repairing/investigating actual installed system.
 
 The recovery mode can be invoked by different ways:
 
 * *IP SET button* - hold it for *3s* until green LED flashes
 * *SD card* - first partition with FAT contains file *uEnv.txt* with a line **recovery=yes**
 * *miner utility* - call ```miner run_recovery``` from the miner's command line
-
-## Factory Reset
-
-The factory reset can be invoked by different ways:
-
-* *IP SET button* - hold it for *10s* until red LED flashes
-* *SD card* - first partition with FAT contains file *uEnv.txt* with a line **factory_reset=yes**
-* *miner utility* - call ```miner factory_reset``` from the miner's command line
