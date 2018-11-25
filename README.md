@@ -634,6 +634,16 @@ transitional firmware images).
 ```
 
 
+## Viewing/Building Documentation Locally
+
+Before pushing new version of the documentation, it can be viewed locally by jekyll rendering all changes on fly as follows:
+
+```
+cd docs;
+docker run -t --rm -v "$PWD":/usr/src/app -p "4000:4000" starefossen/github-pages
+```
+
+
 ## Authors
 
 * **Libor Vašíček** - *Initial work*

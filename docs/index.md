@@ -1,3 +1,7 @@
+---
+layout: page
+---
+
 # Table of contents
 
    * [Overview](#overview)
