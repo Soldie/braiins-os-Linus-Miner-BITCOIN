@@ -36,8 +36,14 @@ RESTORE_DIR = 'upgrade'
 RESTORE_NAME = 'restore.sh'
 
 SUPPORTED_IMAGES = [
+    # Antminer-S9-all-201711171757-autofreq-user-Update2UBI-NF.tar.gz
     '9974dd88b70cdaaa89a4dd55c25d5bc1',
-    '5b07bd845685d81c092a3b0465f24ef1'
+    # Antminer-S9i-all-201811071119-autofreq-user-Update2UBI-NF.tar.gz
+    '5b07bd845685d81c092a3b0465f24ef1',
+    # Antminer-S9j-all-201811071118-autofreq-user-Update2UBI-NF.tar.gz
+    '5ab21bac208a1ce18defabe615e2e197',
+    # Antminer-R4-all-201704280718-autofreq-user-Update2UBI-NF.tar.gz
+    '7f541a58a4ee559105894c94ff301108'
 ]
 
 

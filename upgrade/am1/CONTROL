@@ -38,7 +38,9 @@ ANTMINER_VER=$(sed -n 2p /usr/bin/compile_time)
 
 case "$ANTMINER_VER" in
 	"Antminer S9"|\
-	"Antminer S9i")
+	"Antminer S9i"|\
+	"Antminer S9j"|\
+	"Antminer R4")
 		MINER_HWVER=S9
 		;;
 esac
