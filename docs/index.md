@@ -302,7 +302,7 @@ Connection to 10.33.0.166 closed.
 
 ## Reset to initial Braiins OS version
 
-Uninstall the the current firmware package to downgrade your firmware to the version which was initially installed when replacing the stock firmware.
+Uninstall the current firmware package to downgrade your firmware to the version which was initially installed when replacing the stock firmware.
 
 ```bash
 $ opkg remove firmware
@@ -316,7 +316,7 @@ In addition to the above, reset to initial Braiins OS version can also be initia
 
 ## Recovery Mode
 
-Users doesn't have to typically enter recovery mode while using Braiins OS in a standard way. The ```bos2factory.py``` downgrade process uses it to restore the original factory firmware from the manufacturer. It can also be useful when repairing/investigating actual installed system.
+Users doesn't have to typically enter recovery mode while using Braiins OS in a standard way. The ```bos2factory.py``` downgrade process uses it to restore the original factory firmware from the manufacturer. It can also be useful when repairing/investigating the currently installed system.
 
 The recovery mode can be invoked by different ways:
 
