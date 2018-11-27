@@ -1,3 +1,5 @@
+# 2018-11-27-0
+
 ## Overview - major release; code name: Cobalt
 
 A new major release that brings important features for S9's and unifies miner status page for all supported devices.
