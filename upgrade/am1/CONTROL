@@ -33,6 +33,9 @@ get_net_config() {
 	sed -n '/'$1'=/s/.*=["]*\([^"]*\)["]*/\1/p' /config/network.conf
 }
 
+mtd_hash_expected=8bc020c6db888c7e8062fbbd4a6fb2a6
+mtd_hash=$(cat /proc/mtd | md5sum | awk '{print $1}')
+
 ETHADDR=$(cat /sys/class/net/eth0/address)
 ANTMINER_VER=$(sed -n 2p /usr/bin/compile_time)
 
@@ -53,6 +56,12 @@ BITSTREAM_OFF=0x300000
 
 UBOOT_MTD=0
 UBOOT_ENV_MTD=0
+
+if [ "x${mtd_hash}" != "x${mtd_hash_expected}" ]; then
+	echo "Unsupported miner NAND partitioning" >&2
+	cat /proc/mtd >&2
+	exit 1
+fi
 
 if [ "x${MINER_HWVER}" != "x${FW_MINER_HWVER}" ]; then
 	echo "Unsupported miner version: ${ANTMINER_VER}" >&2
