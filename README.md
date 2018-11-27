@@ -614,10 +614,32 @@ You have to get login information for *root* access over *telnet* (v1) or *ssh* 
 you start the upgrade process. Without this information you have to open your miner and use SD version for boot and
 deploy this firmware with the braiins build *deploy* command with *nand* target.
 
-## Building Firmware Images in Docker
+## Building Latest Firmware Images in Docker
 
 The description below shows how to build firmware images generating all local targets (feeds, SD card image and
 transitional firmware images).
+
+### Docker install
+
+Details for installing docker are covered here: https://docs.docker.com/install/linux/docker-ce/ubuntu/
+A brief extract of the install:
+
+```bash
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+sudo apt-get update
+sudo apt-get install docker-ce
+sudo usermod -a -G docker $USER
+```
+
+### Docker steps
+
+- clone the latest release
+
+```
+git clone --branch firmware_latest https://github.com/braiins/braiins-os.git
+cd braiins-os
+```
 
 - prepare a docker container with all tools:
 
