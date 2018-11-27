@@ -47,19 +47,18 @@ remote:
   # default configuration for fetching latest repository
   fetch: no
   # always fetch each repositories (it cannot be overridden)
-  fetch_always: no
+  fetch_always: yes
   # location aliases for remote repositories
   aliases:
     bos: '{meta_repo}'
     openwrt_feed: git://git.openwrt.org/feed
   # default location for remote repositories
   location: bos
-  # default branch for repositories
-  branch: '{meta_branch}'
   # list of remote repositories
   repos:
     lede:
       project: lede.git
+      branch: 2df79131cf627c875e51cbbcf46ac02f94d25bef
     lede-packages:
       location: openwrt_feed
       project: packages.git
@@ -74,22 +73,29 @@ remote:
       branch: ac6415e61f147a6892fd2785337aec93ddc68fa9
     luci:
       project: luci.git
+      branch: 9bf1a544a092b5a3d7bc8026eb1b721078203a18
     miner-feeds:
       project: braiins-os-feeds.git
+      branch: 29daf22a6b88100edf36ec43a4f28ea58ea62b84
     platform:
       match:
         zynq:
           project: zynq-io-bin.git
+          branch: 57a16d7f69f997ce449eebff2cdd1a050d97ef62
     u-boot:
       project: u-boot-xlnx.git
+      branch: 1b07706512b61a32f1a0bfeaa252882e131fdd43
     linux:
       project: linux-xlnx.git
+      branch: 5c7743c07f0e53a2e56ed70168cee1133e4cdbc1
     cgminer:
       match:
         zynq-dm1:
           project: cgminer.git
+          branch: f98686b63bbee797bf4d2ef334a15efe670adb73
         zynq-am1:
           project: bmminer.git
+          branch: be779a099d21c5749bd84c011cf0991da9f5a533
     # it is possible to continue with any user repositories
 
 local:
