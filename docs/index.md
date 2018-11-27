@@ -59,21 +59,24 @@ The version number is also encoded in all artifacts that are available for downl
 
 In addition to the above, each major Braiins OS release has a code name (e.g. wolfram, hafnium, etc.).
 
+## Transitional firmwares
+
+The table below outlines correspondence between transitional firmware image archives (as provided at [https://feeds.braiins-os.org/](https://feeds.braiins-os.org/)) and a particular hardware type.
+
+| Firmware prefix | Hardware |
+| --- | --- |
+| braiins-os_am1-s9_*.tar.bz2 | Antminer S9, S9i, S9j, R4 |
+| braiins-os_dm1-g9_*.tar.bz2 | Dragon Mint T1 with G9 control board |
+| braiins-os_dm1-g19_*.tar.bz2 | Dragon Mint T1 with G19 control board |
+
 # Installing Braiins OS for the First Time (Replacing Factory Firmware with Braiins OS)
 
-The steps describe below need to be done only **the very first time** you are installing Braiins OS on a device. You will be using so called *transitional firmware images* for this purpose.
+The steps describe below need to be done only **the very first time** you are installing Braiins OS on a device. You will be using so called *transitional firmware images* mentioned above for this purpose.
 
 ## Initial Steps
 
 Download the latest released transitional firmware images + signatures from: [https://feeds.braiins-os.org/](https://feeds.braiins-os.org/)
 
-The table below outlines correspondence between firmware image archive and a particular hardware type.
-
-| Firmware prefix | Hardware |
-| --- | --- |
-| braiins-os_am1-s9_*.tar.bz2 | Antminer S9, S9i |
-| braiins-os_dm1-g9_*.tar.bz2 | Dragon Mint T1 with G9 control board | |
-| braiins-os_dm1-g19_*.tar.bz2 | Dragon Mint T1 with G19 control board | |
 
 You can check the downloaded file for its authenticity and integrity. The image signature can be verified by [GPG](https://www.gnupg.org/documentation/):
 
