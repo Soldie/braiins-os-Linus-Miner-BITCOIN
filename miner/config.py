@@ -108,7 +108,7 @@ class ConfigWrapper:
         else:
             self._root[key] = value
 
-    def _is_dict(self) -> bool:
+    def is_dict(self) -> bool:
         """
         Check if current root is `YAML` dictionary
 
@@ -116,6 +116,15 @@ class ConfigWrapper:
             True when root is `YAML` dictionary
         """
         return type(self._root) is YAML_DICT_TYPE
+
+    def is_list(self) -> bool:
+        """
+        Check if current root is `YAML` list
+
+        :return:
+            True when root is `YAML` list
+        """
+        return type(self._root) is YAML_LIST_TYPE
 
     def __str__(self) -> str:
         """
@@ -146,7 +155,7 @@ class ConfigWrapper:
         :return:
             ConfigWrapper object with value get from `YAML` dictionary.
         """
-        if self._is_dict():
+        if self.is_dict():
             result = self._root.get(item)
             if result is not None:
                 return ConfigWrapper(result, path=self._join_attribute(item), formatter=self.formatter)
@@ -163,7 +172,7 @@ class ConfigWrapper:
         """
         result = None
         path = None
-        if self._is_dict():
+        if self.is_dict():
             result = self._root.get(item)
             if result is None:
                 raise KeyError("Configuration '{}' has no attribute '{}'".format(self.path, item))
@@ -275,7 +284,7 @@ class ConfigWrapper:
         :return:
             Items are pairs where is contain key and value.
         """
-        pairs = self._root.items() if self._is_dict() else enumerate(self._root)
+        pairs = self._root.items() if self.is_dict() else enumerate(self._root)
         return ((key, ConfigWrapper(value, formatter=self.formatter)) for key, value in pairs)
 
     def _merge(self, attribute, value):

@@ -134,7 +134,7 @@ class CommandManager:
         logging.debug("Called command 'deploy'")
         # change target MAC address
         if self._args.mac:
-            self._config.miner.mac = self._args.mac
+            self._config.net.mac = self._args.mac
         # change target hostname and override MAC determination
         if self._args.hostname:
             self._config.deploy.ssh.hostname = self._args.hostname

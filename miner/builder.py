@@ -97,7 +97,17 @@ class Builder:
     BUILD_KEY_PUB_NAME = 'key-build.pub'
 
     # variables for miner NAND configuration
-    MINER_MAC = 'ethaddr'
+    NET_MAC = 'ethaddr'
+    NET_IP = 'net_ip'
+    NET_MASK = 'net_mask'
+    NET_GATEWAY = 'net_gateway'
+    NET_DNS_SERVERS = 'net_dns_servers'
+    NET_HOSTNAME = 'net_hostname'
+
+    HW_FREQ = 'freq'
+    HW_VOLTAGE = 'voltage'
+    HW_FIXED_FREQ = 'fixed_freq'
+
     MINER_HWID = 'miner_hwid'
     MINER_POOL_HOST = 'miner_pool_host'
     MINER_POOL_PORT = 'miner_pool_port'
@@ -105,7 +115,15 @@ class Builder:
     MINER_POOL_PASS = 'miner_pool_pass'
 
     MINER_CFG_INPUT = [
-        (MINER_MAC, 'miner.mac', None),
+        (NET_MAC, 'net.mac', None),
+        (NET_IP, 'net.ip', ''),
+        (NET_MASK, 'net.mask', ''),
+        (NET_GATEWAY, 'net.gateway', ''),
+        (NET_DNS_SERVERS, 'net.dns_servers', []),
+        (NET_HOSTNAME, 'net.hostname', ''),
+        (HW_FREQ, 'miner.hw.freq', ''),
+        (HW_VOLTAGE, 'miner.hw.voltage', ''),
+        (HW_FIXED_FREQ, 'miner.hw.fixed_freq', ''),
         (MINER_HWID, 'miner.hwid', hwid.generate),
         (MINER_POOL_HOST, 'miner.pool.host', None),
         (MINER_POOL_PORT, 'miner.pool.port', None),
@@ -535,7 +553,7 @@ class Builder:
         :return:
             Miner hostname for current configuration.
         """
-        mac = self._config.miner.mac
+        mac = self._config.net.mac
         return 'miner-' + ''.join(mac.split(':')[-3:]).lower()
 
     def _get_utility(self, name: str):
@@ -1037,7 +1055,7 @@ class Builder:
             Write also recovery parameters.
         """
         if self._config.uenv.get('mac', 'no') == 'yes':
-            stream.write("{}={}\n".format(self.MINER_MAC, self._config.miner.mac))
+            stream.write("{}={}\n".format(self.NET_MAC, self._config.net.mac))
 
         bool_attributes = (
             'factory_reset',
@@ -1132,9 +1150,14 @@ class Builder:
                     logging.error("Missing miner configuration for '{}' in '{}'".format(name, path))
                     raise BuilderStop
                 # use default value when configuration is not set in YAML
-                value = default if type(default) is str else default()
+                value = default if not callable(default) else default()
             if value:
                 # attributes with empty value are completely omitted
+                if type(value) not in [str, int]:
+                    if type(value) is bool:
+                        value = str(value).lower()
+                    elif value.is_list():
+                        value = ','.join(value)
                 stream.write('{}={}\n'.format(name, value).encode())
 
     def _write_nand_uboot(self, ssh, image):
@@ -1365,7 +1388,7 @@ class Builder:
         # change miner configuration in U-Boot env
         if self._config.deploy.set_miner_env == 'yes' and self._config.deploy.reset_uboot_env == 'no':
             logging.info("Writing miner configuration to U-Boot env in NAND...")
-            ssh.run('fw_setenv', self.MINER_MAC, self._config.miner.mac)
+            ssh.run('fw_setenv', self.NET_MAC, self._config.net.mac)
             ssh.run('fw_setenv', self.MINER_HWID, self._config.miner.hwid)
             ssh.run('fw_setenv', self.MINER_FIRMWARE, str(self._config.miner.firmware))
 
@@ -1500,7 +1523,7 @@ class Builder:
             Bytes stream with miner configuration.
         """
         miner_cfg_input = io.BytesIO()
-        self._write_miner_cfg_input(miner_cfg_input, {self.MINER_MAC, self.MINER_HWID})
+        self._write_miner_cfg_input(miner_cfg_input, {self.NET_MAC, self.MINER_HWID})
         return miner_cfg_input
 
     def _create_upgrade_uboot_env(self):

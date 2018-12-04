@@ -1,8 +1,6 @@
 miner:
   # possible platforms are zynq-dm1-g9, zynq-dm1-g19, zynq-am1-s9
   platform: zynq-dm1-g19
-  # default miner MAC address
-  mac: 00:0A:35:FF:FF:FF
   # miner HW identifier
 #  hwid: Q50QDhdWuWq9yDr5
   # select NAND firmware which is used for boot
@@ -13,6 +11,23 @@ miner:
     port: 3333
     user: braiinstest.worker1
 #    pass: x
+  # HW specific settings
+#  hw:
+#    freq: 550
+#    voltage: '0706'
+#    fixed_freq: true
+
+net:
+  # default miner MAC address
+  mac: 00:0A:35:FF:FF:FF
+  # static IP settings
+#  ip: 10.33.0.2
+#  mask: 255.255.255.0
+#  gateway: 10.33.0.1
+#  dns_servers:
+#  - 10.33.0.1
+  # miner hostname when DHCP is used (static IP is not set)
+#  hostname: bos-miner
 
 build:
   # name of subdirectory in the build directory
