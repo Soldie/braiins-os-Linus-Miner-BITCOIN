@@ -29,7 +29,7 @@ import glob
 import filecmp
 import tempfile
 
-import miner.hwid as hwid
+import miner.nand as nand
 
 from itertools import chain
 from collections import OrderedDict, namedtuple
@@ -95,45 +95,6 @@ class Builder:
     CONFIG_NAME = '.config'
     BUILD_KEY_NAME = 'key-build'
     BUILD_KEY_PUB_NAME = 'key-build.pub'
-
-    # variables for miner NAND configuration
-    NET_MAC = 'ethaddr'
-    NET_IP = 'net_ip'
-    NET_MASK = 'net_mask'
-    NET_GATEWAY = 'net_gateway'
-    NET_DNS_SERVERS = 'net_dns_servers'
-    NET_HOSTNAME = 'net_hostname'
-
-    HW_FREQ = 'freq'
-    HW_VOLTAGE = 'voltage'
-    HW_FIXED_FREQ = 'fixed_freq'
-
-    MINER_HWID = 'miner_hwid'
-    MINER_POOL_HOST = 'miner_pool_host'
-    MINER_POOL_PORT = 'miner_pool_port'
-    MINER_POOL_USER = 'miner_pool_user'
-    MINER_POOL_PASS = 'miner_pool_pass'
-
-    MINER_CFG_INPUT = [
-        (NET_MAC, 'net.mac', None),
-        (NET_IP, 'net.ip', ''),
-        (NET_MASK, 'net.mask', ''),
-        (NET_GATEWAY, 'net.gateway', ''),
-        (NET_DNS_SERVERS, 'net.dns_servers', []),
-        (NET_HOSTNAME, 'net.hostname', ''),
-        (HW_FREQ, 'miner.hw.freq', ''),
-        (HW_VOLTAGE, 'miner.hw.voltage', ''),
-        (HW_FIXED_FREQ, 'miner.hw.fixed_freq', ''),
-        (MINER_HWID, 'miner.hwid', hwid.generate),
-        (MINER_POOL_HOST, 'miner.pool.host', None),
-        (MINER_POOL_PORT, 'miner.pool.port', None),
-        (MINER_POOL_USER, 'miner.pool.user', None),
-        (MINER_POOL_PASS, 'miner.pool.pass', '')
-    ]
-
-    MINER_FIRMWARE = 'firmware'
-    MINER_ENV_SIZE = 0x20000
-    MINER_CFG_SIZE = 0x20000
 
     UENV_TXT = 'uEnv.txt'
 
@@ -1055,7 +1016,7 @@ class Builder:
             Write also recovery parameters.
         """
         if self._config.uenv.get('mac', 'no') == 'yes':
-            stream.write("{}={}\n".format(self.NET_MAC, self._config.net.mac))
+            stream.write("{}={}\n".format(nand.NET_MAC, self._config.net.mac))
 
         bool_attributes = (
             'factory_reset',
@@ -1131,34 +1092,6 @@ class Builder:
             String with path to MTD device.
         """
         return '/dev/mtd' + {1: '7', 2: '8'}.get(index)
-
-    def _write_miner_cfg_input(self, stream, excluded=set()):
-        """
-        Write to the stream miner configuration input for NAND
-
-        :stream:
-            Opened stream for writing miner configuration input.
-        :excluded:
-            Dictionary with excluded attributes.
-        """
-        for name, path, default in self.MINER_CFG_INPUT:
-            if name in excluded:
-                continue
-            value = self._config.get(path)
-            if value is None:
-                if default is None:
-                    logging.error("Missing miner configuration for '{}' in '{}'".format(name, path))
-                    raise BuilderStop
-                # use default value when configuration is not set in YAML
-                value = default if not callable(default) else default()
-            if value:
-                # attributes with empty value are completely omitted
-                if type(value) not in [str, int]:
-                    if type(value) is bool:
-                        value = str(value).lower()
-                    elif value.is_list():
-                        value = ','.join(value)
-                stream.write('{}={}\n'.format(name, value).encode())
 
     def _write_nand_uboot(self, ssh, image):
         """
@@ -1376,10 +1309,11 @@ class Builder:
         # write miner configuration to miner_cfg NAND
         if self._config.deploy.write_miner_cfg == 'yes':
             miner_cfg_input = io.BytesIO()
-            self._write_miner_cfg_input(miner_cfg_input)
+            if not nand.write_miner_cfg_input(self._config, miner_cfg_input):
+                raise BuilderStop
             # generate image file with NAND configuration
             mkenvimage = self._get_utility(self.LEDE_MKENVIMAGE)
-            output = self._run(mkenvimage, '-r', '-p', str(0), '-s', str(self.MINER_CFG_SIZE), '-',
+            output = self._run(mkenvimage, '-r', '-p', str(0), '-s', str(nand.MINER_CFG_SIZE), '-',
                                input=miner_cfg_input.getvalue(), output=True)
             logging.info("Writing miner configuration to NAND partition 'miner_cfg'...")
             with ssh.pipe('mtd', 'write', '-', 'miner_cfg') as remote:
@@ -1388,9 +1322,9 @@ class Builder:
         # change miner configuration in U-Boot env
         if self._config.deploy.set_miner_env == 'yes' and self._config.deploy.reset_uboot_env == 'no':
             logging.info("Writing miner configuration to U-Boot env in NAND...")
-            ssh.run('fw_setenv', self.NET_MAC, self._config.net.mac)
-            ssh.run('fw_setenv', self.MINER_HWID, self._config.miner.hwid)
-            ssh.run('fw_setenv', self.MINER_FIRMWARE, str(self._config.miner.firmware))
+            ssh.run('fw_setenv', nand.NET_MAC, self._config.net.mac)
+            ssh.run('fw_setenv', nand.MINER_HWID, self._config.miner.hwid)
+            ssh.run('fw_setenv', nand.MINER_FIRMWARE, str(self._config.miner.firmware))
 
         reset_uboot_env = self._config.deploy.reset_uboot_env == 'yes'
         reset_overlay = self._config.deploy.reset_overlay == 'yes'
@@ -1523,7 +1457,8 @@ class Builder:
             Bytes stream with miner configuration.
         """
         miner_cfg_input = io.BytesIO()
-        self._write_miner_cfg_input(miner_cfg_input, {self.NET_MAC, self.MINER_HWID})
+        if not nand.write_miner_cfg_input(self._config, miner_cfg_input, {nand.NET_MAC, nand.MINER_HWID}):
+            raise BuilderStop
         return miner_cfg_input
 
     def _create_upgrade_uboot_env(self):
@@ -1542,7 +1477,7 @@ class Builder:
             shutil.copyfileobj(base_input_file, uboot_env_input)
 
         return io.BytesIO(
-            self._run(mkenvimage, '-r', '-p', str(0), '-s', str(self.MINER_ENV_SIZE), '-',
+            self._run(mkenvimage, '-r', '-p', str(0), '-s', str(nand.MINER_ENV_SIZE), '-',
                       input=uboot_env_input.getvalue(), output=True)
         )
 
@@ -1557,7 +1492,7 @@ class Builder:
         miner_cfg_input = self._create_upgrade_miner_cfg_input()
 
         return io.BytesIO(
-            self._run(mkenvimage, '-r', '-p', str(0), '-s', str(self.MINER_CFG_SIZE), '-',
+            self._run(mkenvimage, '-r', '-p', str(0), '-s', str(nand.MINER_CFG_SIZE), '-',
                       input=miner_cfg_input.getvalue(), output=True)
         )
 

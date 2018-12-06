@@ -45,9 +45,6 @@ class CommandManager:
         self._config = miner.load_config(args.config)
 
         # set optional keys to default value
-        self._config.setdefault('miner.pool.host', 'stratum+tcp://stratum.slushpool.com')
-        self._config.setdefault('miner.pool.port', 3333)
-        self._config.setdefault('miner.pool.user', 'braiinstest.worker1')
         self._config.setdefault('build.jobs', 1)
         self._config.setdefault('build.verbose', 'no')
         self._config.setdefault('remote.fetch', 'no')

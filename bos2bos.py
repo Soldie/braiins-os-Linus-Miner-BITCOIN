@@ -21,12 +21,14 @@ import argparse
 import subprocess
 import tarfile
 import shutil
+import miner
 import sys
 import os
+import io
 
-import miner.hwid as hwid
+import miner.nand as nand
 
-from miner.ssh import SSHManager
+from miner.ssh import SSHManager, SSHError
 from tempfile import TemporaryDirectory
 from urllib.request import Request, urlopen
 from glob import glob
@@ -39,6 +41,10 @@ MODE_NAND = 'nand'
 MODE_RECOVERY = 'recovery'
 
 MINER_CFG_CONFIG = '/tmp/miner_cfg.config'
+
+
+class RestoreStop(Exception):
+    pass
 
 
 def mdt_write(ssh, local_path, mtd, name, erase=True, offset=0):
@@ -93,8 +99,34 @@ def check_miner_cfg(ssh):
         return True
 
 
-def set_miner_cfg(ssh, name, value):
-    ssh.run('fw_setenv', '-c', MINER_CFG_CONFIG, name, str(value))
+def set_miner_cfg(ssh, config, rewrite_miner_cfg):
+    miner_cfg_input = io.BytesIO()
+    if not nand.write_miner_cfg_input(config, miner_cfg_input, use_default=rewrite_miner_cfg):
+        raise RestoreStop
+    miner_cfg_input = miner_cfg_input.getvalue()
+
+    if len(miner_cfg_input):
+        if rewrite_miner_cfg:
+            print("Setting default miner configuration...")
+        else:
+            print("Overriding miner configuration...")
+        # write miner configuration to NAND
+        with ssh.pipe('fw_setenv', '-c', MINER_CFG_CONFIG, '-s', '-') as remote:
+            remote.stdin.write(miner_cfg_input)
+
+
+def get_config(args, ssh, rewrite_miner_cfg):
+    config = miner.load_config(args.config)
+
+    config.setdefault('miner', miner.EmptyDict())
+    config.setdefault('net', miner.EmptyDict())
+
+    if args.mac:
+        config.net.mac = args.mac
+    elif rewrite_miner_cfg and not config.net.get('mac'):
+        config.net.mac = get_ethaddr(ssh)
+
+    return config
 
 
 def firmware_deploy(args, firmware_dir, stage2_dir):
@@ -120,6 +152,7 @@ def firmware_deploy(args, firmware_dir, stage2_dir):
         sftp.close()
 
         rewrite_miner_cfg = not check_miner_cfg(ssh)
+        config = get_config(args, ssh, rewrite_miner_cfg)
 
         mdt_write(ssh, boot_bin, 'boot', 'SPL')
         mdt_write(ssh, uboot_img, 'uboot', 'U-Boot')
@@ -129,19 +162,11 @@ def firmware_deploy(args, firmware_dir, stage2_dir):
         # original firmware has different recovery partition without SPL bootloader
         if os.path.isfile(boot_bin_gz):
             mdt_write(ssh, boot_bin_gz, 'recovery', 'SPL bootloader', erase=False, offset=0x1500000)
-
         if rewrite_miner_cfg:
             mdt_write(ssh, miner_cfg_bin, 'miner_cfg', 'miner configuration')
 
-            ethaddr = args.mac or get_ethaddr(ssh)
-            miner_hwid = hwid.generate()
-
-            print("Setting default miner configuration...")
-            set_miner_cfg(ssh, 'ethaddr', ethaddr)
-            set_miner_cfg(ssh, 'miner_hwid', miner_hwid)
-        elif args.mac:
-            print("Overriding MAC address...")
-            set_miner_cfg(ssh, 'ethaddr', args.mac)
+        # set miner configuration
+        set_miner_cfg(ssh, config, rewrite_miner_cfg)
 
         # erase rest of partitions
         mtds_for_erase = ['fpga1', 'fpga2', 'uboot_env']
@@ -173,6 +198,7 @@ def main(args):
         print('Extracting firmware tarball...')
         tar.extractall(path=backup_dir)
         tar.close()
+        stream.close()
         # find factory_transition with firmware directory
         firmware_dir = glob(os.path.join(backup_dir, '**', 'firmware'), recursive=True)[0]
         stage2_dir = os.path.join(firmware_dir, 'stage2')
@@ -192,9 +218,18 @@ if __name__ == "__main__":
                         help='URL to tarball with transitional bos firmware')
     parser.add_argument('hostname',
                         help='hostname of miner with bos firmware')
+    parser.add_argument('--config',
+                        help='path to configuration file')
     parser.add_argument('--mac',
                         help='override MAC address')
 
     # parse command line arguments
     args = parser.parse_args(sys.argv[1:])
-    main(args)
+
+    try:
+        main(args)
+    except SSHError as e:
+        print(str(e))
+        sys.exit(1)
+    except RestoreStop:
+        sys.exit(2)

@@ -454,5 +454,8 @@ def load_config(path: str):
     :return:
         ConfigWrapper object used for easier access to configuration attributes.
     """
-    with open(path, 'r') as ymlfile:
-        return ConfigWrapper(yaml.load(ymlfile, Loader=yaml.RoundTripLoader))
+    root = YAML_DICT_TYPE()
+    if path:
+        with open(path, 'r') as ymlfile:
+            root = yaml.load(ymlfile, Loader=yaml.RoundTripLoader)
+    return ConfigWrapper(root)
