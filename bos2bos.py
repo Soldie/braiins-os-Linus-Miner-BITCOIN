@@ -26,6 +26,7 @@ import sys
 import os
 import io
 
+import miner.hash as hash
 import miner.nand as nand
 
 from miner.ssh import SSHManager, SSHError
@@ -41,6 +42,31 @@ MODE_NAND = 'nand'
 MODE_RECOVERY = 'recovery'
 
 MINER_CFG_CONFIG = '/tmp/miner_cfg.config'
+
+PLATFORM_AM1_S9 = 'am1-s9'
+PLATFORM_DM1_G9 = 'dm1-g9'
+PLATFORM_DM1_G19 = 'dm1-g19'
+
+FW_2018_09_22_0 = '2018-09-22-0-'
+FW_2018_09_22_1 = '2018-09-22-1-'
+FW_2018_10_24_0 = '2018-10-24-0-'
+FW_2018_11_27_0 = '2018-11-27-0-c34516b0'
+
+MINER_FIRMWARES = {
+    # AntMiner S9
+    '545c2c7697881f272c27ea1bb8662b36': (FW_2018_09_22_0 + '853643de', PLATFORM_AM1_S9),
+    'bb2c44b06980f021554f163e5c277122': (FW_2018_09_22_1 + '8d9b127d', PLATFORM_AM1_S9),
+    '7a8f0835641168f197a1f0ed691fb263': (FW_2018_10_24_0 + '9e5687a2', PLATFORM_AM1_S9),
+    'ddde6d48cb3b1221369f59c7b5bb9974': (FW_2018_11_27_0, PLATFORM_AM1_S9),
+    # DragonMint G9
+    '708a3b77f234337c72457617e5987afd': (FW_2018_09_22_0 + 'c169f7bc', PLATFORM_DM1_G9),
+    '97aaca5416b9b21db93f44801e8c2f61': (FW_2018_09_22_1 + '4ea78c06', PLATFORM_DM1_G9),
+    'a5635ceff3b992e30ddaa0749f76c9bb': (FW_2018_11_27_0, PLATFORM_DM1_G9),
+    # DragonMint G19
+    'da46965332226a69b6d685dd81379fbd': (FW_2018_09_22_0 + '2a866bfc', PLATFORM_DM1_G19),
+    'bc6d48dfaea1295518144a93803ba7b7': (FW_2018_09_22_1 + '9be06020', PLATFORM_DM1_G19),
+    '02513d7ad9b54d55d9254c959b2ec5ab': (FW_2018_11_27_0, PLATFORM_DM1_G19),
+}
 
 
 class RestoreStop(Exception):
@@ -79,6 +105,11 @@ def get_mode(ssh):
             return MODE_SD
         else:
             return MODE_NAND
+
+
+def get_platform(ssh):
+    stdout, _ = ssh.run('cat', '/tmp/sysinfo/board_name')
+    return next(stdout).strip()
 
 
 def get_env(ssh, name):
@@ -129,7 +160,14 @@ def get_config(args, ssh, rewrite_miner_cfg):
     return config
 
 
-def firmware_deploy(args, firmware_dir, stage2_dir):
+def firmware_deploy(args, firmware_dir, stage2_dir, md5_digest):
+    # detect firmware image
+    fw_info = MINER_FIRMWARES.get(md5_digest)
+    if not fw_info:
+        print("Unsupported firmware with MD5 digest: {}".format(md5_digest))
+        raise RestoreStop
+    fw_version, fw_platform = fw_info
+    print("Detected bOS firmware image: {} ({})".format(fw_version, fw_platform))
     # get file paths
     boot_bin = os.path.join(firmware_dir, 'boot.bin')
     uboot_img = os.path.join(firmware_dir, 'u-boot.img')
@@ -143,8 +181,17 @@ def firmware_deploy(args, firmware_dir, stage2_dir):
     print("Connecting to remote host...")
     with SSHManager(args.hostname, USERNAME, PASSWORD) as ssh:
         # detect mode
+        platform = get_platform(ssh)
         mode = get_mode(ssh)
+        print("Detected bOS platform: {}".format(platform))
         print("Detected bOS mode: {}".format(mode))
+
+        if fw_platform != platform:
+            print("Firmware image is incompatible with target platform!")
+            if args.force:
+                print("Forcing upgrade...")
+            else:
+                raise RestoreStop
 
         print("Uploading miner configuration file...")
         sftp = ssh.open_sftp()
@@ -194,11 +241,13 @@ def firmware_deploy(args, firmware_dir, stage2_dir):
 def main(args):
     with TemporaryDirectory() as backup_dir:
         stream = urlopen(Request(args.firmware_url, headers={'User-Agent': 'Mozilla/5.0'}))
+        stream = hash.HashStream(stream, 'md5')
         tar = tarfile.open(fileobj=stream, mode='r|*')
         print('Extracting firmware tarball...')
         tar.extractall(path=backup_dir)
         tar.close()
         stream.close()
+        md5_digest = stream.hash.hexdigest()
         # find factory_transition with firmware directory
         firmware_dir = glob(os.path.join(backup_dir, '**', 'firmware'), recursive=True)[0]
         stage2_dir = os.path.join(firmware_dir, 'stage2')
@@ -207,7 +256,7 @@ def main(args):
         tar = tarfile.open(os.path.join(firmware_dir, 'stage2.tgz'))
         tar.extractall(path=stage2_dir)
         tar.close()
-        firmware_deploy(args, firmware_dir, stage2_dir)
+        firmware_deploy(args, firmware_dir, stage2_dir, md5_digest)
 
 
 if __name__ == "__main__":
@@ -222,6 +271,8 @@ if __name__ == "__main__":
                         help='path to configuration file')
     parser.add_argument('--mac',
                         help='override MAC address')
+    parser.add_argument('--force', action='store_true',
+                        help='force installing incompatible firmware version')
 
     # parse command line arguments
     args = parser.parse_args(sys.argv[1:])
