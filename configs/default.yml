@@ -9,7 +9,7 @@ miner:
   pool:
     host: stratum+tcp://stratum.slushpool.com
     port: 3333
-    user: braiinstest.worker1
+    user: '!non-existent-user!'
 #    pass: x
   # HW specific settings
 #  hw:
