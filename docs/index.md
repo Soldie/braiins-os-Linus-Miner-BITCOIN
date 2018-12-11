@@ -61,7 +61,7 @@ The table below outlines correspondence between transitional firmware image arch
 
 | Firmware prefix | Hardware |
 | --- | --- |
-| braiins-os_am1-s9_*.tar.bz2 | Antminer S9, S9i, S9j, R4 |
+| braiins-os_am1-s9_*.tar.bz2 | Antminer S9, S9i, S9j; (**R4** support is **broken** do not **USE**!!) |
 | braiins-os_dm1-g9_*.tar.bz2 | Dragon Mint T1 with G9 control board |
 | braiins-os_dm1-g19_*.tar.bz2 | Dragon Mint T1 with G19 control board |
 
