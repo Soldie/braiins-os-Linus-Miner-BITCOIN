@@ -17,6 +17,7 @@
       * [Firmware upgrade](#firmware-upgrade)
          * [Upgrade via web interface](#upgrade-via-web-interface)
          * [Upgrade via SSH](#upgrade-via-ssh)
+         * [ Upgrade from Braiins OS preview version](#upgrade-from-braiins-os-preview-version)
       * [Reset to initial Braiins OS version](#reset-to-initial-braiins-os-version)
       * [Recovery Mode](#recovery-mode-1)
 
@@ -297,6 +298,26 @@ Collected errors:
 Saving config files...
 Connection to 10.33.0.166 closed by remote host.
 Connection to 10.33.0.166 closed.
+```
+
+## Upgrade from Braiins OS preview version
+
+The script *bos2bos.ps* is provided to upgrade from one of the Braiins OS preview versions and expects two parameters. The 1st parameter is a URL to the **Braiins OS** firmware to use for the transition from our feeds server and matching your platform. Please see the [table](#transitional-firmwares) at the top of this document. The 2nd parameter is the miner's hostname or IP. There is an optional 3rd named parameter *--mac* which allowes you to provide a new MAC-address which the miner will thenb have after the upgrade.
+
+Follow the below steps to upgrade/transition from the Braiins OS preview.
+
+*Note: As this script is not inclued in the releases you will need to clone the repository.*
+
+```bash
+# clone repository
+git clone https://github.com/braiins/braiins-os.git
+
+cd braiins-os
+virtualenv --python=/usr/bin/python3 .env
+source .env/bin/activate
+pip install -r ./requirements.txt
+
+python3 bos2bos.py url-to-transitional-firmware your-miner-hostname-or-ip
 ```
 
 ## Reset to initial Braiins OS version
