@@ -264,7 +264,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument('firmware_url',
-                        help='URL to tarball with transitional bos firmware')
+                        help='URL to tarball with transitional bOS firmware from https://feeds.braiins-os.org/')
     parser.add_argument('hostname',
                         help='hostname of miner with bos firmware')
     parser.add_argument('--config',
