@@ -325,11 +325,13 @@ python3 bos2bos.py url-to-transitional-firmware your-miner-hostname-or-ip
 
 You can set the miners password via SSH from a remote host by running the below command and replaceing *[newpassword]* with your own password.
 
-*Note: bOS does **not** keep a history of the commands executed. *
+*Note: bOS does **not** keep a history of the commands executed.*
+
 ```bash
 $ ssh root@[miner-hostname-or-ip] 'echo -e "[newpassword]\n[newpasword]" | passwd'
 ```
 
+To do this for several hosts in parallel you could use [p-ssh](https://linux.die.net/man/1/pssh).
 
 ## Reset to initial Braiins OS version
 
