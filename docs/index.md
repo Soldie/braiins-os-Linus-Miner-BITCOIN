@@ -18,6 +18,7 @@
          * [Upgrade via web interface](#upgrade-via-web-interface)
          * [Upgrade via SSH](#upgrade-via-ssh)
          * [ Upgrade from Braiins OS preview version](#upgrade-from-braiins-os-preview-version)
+      * [Setting miner password via SSH](#setting-miner-password-via-ssh)
       * [Reset to initial Braiins OS version](#reset-to-initial-braiins-os-version)
       * [Recovery Mode](#recovery-mode-1)
 
@@ -300,7 +301,7 @@ Connection to 10.33.0.166 closed by remote host.
 Connection to 10.33.0.166 closed.
 ```
 
-## Upgrade from Braiins OS preview version
+### Upgrade from Braiins OS preview version
 
 The script *bos2bos.ps* is provided to upgrade from one of the Braiins OS preview versions and expects two parameters. The 1st parameter is a URL to the **Braiins OS** firmware to use for the transition from our feeds server and matching your platform. Please see the [table](#transitional-firmwares) at the top of this document. The 2nd parameter is the miner's hostname or IP. There is an optional 3rd named parameter *--mac* which allowes you to provide a new MAC-address which the miner will thenb have after the upgrade.
 
@@ -319,6 +320,16 @@ pip install -r ./requirements.txt
 
 python3 bos2bos.py url-to-transitional-firmware your-miner-hostname-or-ip
 ```
+
+## Setting miner password via SSH
+
+You can set the miners password via SSH from a remote host by running the below command and replaceing *[newpassword]* with your own password.
+
+*Note: bOS does **not** keep a history of the commands executed. *
+```bash
+$ ssh root@[miner-hostname-or-ip] 'echo -e "[newpassword]\n[newpasword]" | passwd'
+```
+
 
 ## Reset to initial Braiins OS version
 
