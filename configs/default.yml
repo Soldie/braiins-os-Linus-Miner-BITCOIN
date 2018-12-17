@@ -52,11 +52,21 @@ build:
   aliases:
     kernel: target/linux
     cgminer: package/utils/cgminer
-  # components included in sysupgrade (firmware) for specific platform
-  # supported components: command, spl, uboot, fpga
+  # attribute 'require': previous compatible firmware needed for upgrade
+  # attribute 'include': components included in sysupgrade (firmware) for specific platform
+  #   supported components - command, spl, uboot, fpga
   sysupgrade:
-    zynq-dm1: [command]
-    zynq-am1: [command]
+    zynq-dm1-g9:
+      require: '2018-09-22-0-c169f7bc'
+    zynq-dm1-g19:
+      require: '2018-09-22-0-2a866bfc'
+    zynq-dm1:
+      major: no
+      include: [command]
+    zynq-am1:
+      major: no
+      require: '2018-10-24-0-9e5687a2'
+      include: [command]
 
 remote:
   # default configuration for fetching latest repository

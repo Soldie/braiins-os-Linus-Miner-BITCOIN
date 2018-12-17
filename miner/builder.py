@@ -157,10 +157,17 @@ class Builder:
     UPGRADE_AM_RUNME = 'runme.sh'
     UPGRADE_AM_UBI_INFO = 'ubi_info'
 
+    # sysupgrade attributes
+    SYSUPGRADE_ATTR_MAJOR = 'major'
+    SYSUPGRADE_ATTR_REQUIRE = 'require'
+    SYSUPGRADE_ATTR_INCLUDE = 'include'
+
     # feeds index constants
     FEEDS_INDEX = 'Packages'
     FEEDS_ATTR_PACKAGE = 'Package'
     FEEDS_ATTR_FILENAME = 'Filename'
+    FEEDS_ATTR_VERSION = 'Version'
+    FEEDS_ATTR_REQUIRE = 'Require'
     FEEDS_EXCLUDED_ATTRIBUTES = ['Source', 'Maintainer']
 
     FEED_FIRMWARE = 'firmware'
@@ -190,6 +197,23 @@ class Builder:
         """
         platform = platform or self._config.miner.platform
         return tuple(platform.split('-', 1))
+
+    def _get_sysupgrade_attr(self, name):
+        """
+        Get sysupgrade attribute for current platform specified by matching pattern in
+        the configuration.
+
+        :param name:
+            Name of attribute.
+        :return:
+            Configuration for sysupgrade attribute for current platform.
+        """
+        sysupgrade = self._config.build.sysupgrade
+
+        # find attributes for current platform with prefix pattern
+        for pattern, value in sorted(sysupgrade.items(), reverse=True):
+            if self._config.miner.platform.startswith(pattern) and value.get(name):
+                return value.get(name)
 
     def _write_target_config(self, stream, config):
         """
@@ -229,7 +253,6 @@ class Builder:
         :param config:
             Configuration name prefix.
         """
-        sysupgrade = self._config.build.sysupgrade
         components = [
             ('command', 'COMMAND'),
             ('spl', 'SPL'),
@@ -237,18 +260,58 @@ class Builder:
             ('fpga', 'FPGA')
         ]
 
-        # find includes for current platform with prefix pattern
-        includes = next((value for pattern, value in sorted(sysupgrade.items(), reverse=True)
-                         if self._config.miner.platform.startswith(pattern)), None)
+        # get includes from platform sysupgrade attribute
+        includes = self._get_sysupgrade_attr(self.SYSUPGRADE_ATTR_INCLUDE)
 
         for src_name, dst_name in components:
             if src_name in includes:
                 stream.write('{}{}=y\n'.format(config, dst_name))
 
+    def _write_firmware_major(self, stream, config):
+        """
+        Write major firmware version.
+
+        :param stream:
+            Opened stream for writing configuration.
+        :param config:
+            Configuration name prefix.
+        :return:
+            Current firmware version.
+        """
+        fw_major = self._get_sysupgrade_attr(self.SYSUPGRADE_ATTR_MAJOR) == 'yes'
+        fw_major = self.get_firmware_version() if fw_major else self._get_sysupgrade_attr(self.SYSUPGRADE_ATTR_REQUIRE)
+        logging.debug("Set firmware major version to '{}'".format(fw_major))
+        stream.write('{}="{}"\n'.format(config, fw_major))
+
     def _write_firmware_version(self, stream, config):
+        """
+        Write current firmware version.
+
+        :param stream:
+            Opened stream for writing configuration.
+        :param config:
+            Configuration name prefix.
+        :return:
+            Current firmware version.
+        """
         fw_version = self.get_firmware_version()
         logging.debug("Set firmware version to '{}'".format(fw_version))
         stream.write('{}="{}"\n'.format(config, fw_version))
+
+    def _write_firmware_require(self, stream, config):
+        """
+        Write previous firmware version required by this firmware
+
+        :param stream:
+            Opened stream for writing configuration.
+        :param config:
+            Configuration name prefix.
+        :return:
+            Previous firmware version required by this firmware.
+        """
+        fw_require = self._get_sysupgrade_attr(self.SYSUPGRADE_ATTR_REQUIRE)
+        logging.debug("Set required firmware version to '{}'".format(fw_require))
+        stream.write('{}="{}"\n'.format(config, fw_require))
 
     def _write_external_path(self, stream, config, repo_name: str, name: str):
         """
@@ -272,7 +335,9 @@ class Builder:
     GENERATED_CONFIGS = [
         ('CONFIG_TARGET_', _write_target_config),
         ('CONFIG_SYSUPGRADE_WITH_', _write_sysupgrade),
+        ('CONFIG_FIRMWARE_MAJOR', _write_firmware_major),
         ('CONFIG_FIRMWARE_VERSION', _write_firmware_version),
+        ('CONFIG_FIRMWARE_REQUIRE', _write_firmware_require),
         ('CONFIG_EXTERNAL_KERNEL_TREE', partial(_write_external_path, repo_name=LINUX, name='kernel')),
         ('CONFIG_EXTERNAL_CGMINER_TREE', partial(_write_external_path, repo_name=CGMINER, name='CGMiner')),
         ('CONFIG_EXTERNAL_UBOOT_TREE', partial(_write_external_path, repo_name=UBOOT, name='U-Boot')),
@@ -1850,6 +1915,7 @@ class Builder:
         # prepare base feeds index
         feeds_base = None
         feeds_base_url = self._config.deploy.get('feeds_base', None)
+        fw_require = self._get_sysupgrade_attr(self.SYSUPGRADE_ATTR_REQUIRE)
 
         if feeds_base_url:
             # appending to previous index
@@ -1864,6 +1930,9 @@ class Builder:
             for attribute, value in firmware_package.items():
                 if attribute not in self.FEEDS_EXCLUDED_ATTRIBUTES:
                     dst_packages.write('{}: {}\n'.format(attribute, value))
+                if fw_require and attribute == self.FEEDS_ATTR_VERSION:
+                    # insert previous firmware requirements after version attribute
+                    dst_packages.write('{}: {}\n'.format(self.FEEDS_ATTR_REQUIRE, fw_require))
 
         # sign the created index file
         usign = self._get_utility(self.LEDE_USIGN)
