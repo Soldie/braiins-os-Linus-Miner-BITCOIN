@@ -156,7 +156,7 @@ Below are commands to replace original factory firmware with Braiins OS using th
 cd braiins-os_am1-s9_ssh_VERSION
 virtualenv --python=/usr/bin/python3 .env
 source .env/bin/activate
-pip install -r ./requirements.txt
+python3 -m pip install -r requirements.txt
 
 python3 upgrade2bos.py your-miner-hostname-or-ip
 ```
@@ -316,7 +316,7 @@ git clone https://github.com/braiins/braiins-os.git
 cd braiins-os
 virtualenv --python=/usr/bin/python3 .env
 source .env/bin/activate
-pip install -r ./requirements.txt
+python3 -m pip install -r requirements.txt
 
 python3 bos2bos.py url-to-transitional-firmware your-miner-hostname-or-ip
 ```

@@ -33,9 +33,9 @@ Clone git repository to some directory and setup system environment:
 # clone braiins OS from git
 $ git clone https://github.com/braiins/braiins-os.git
 $ cd braiins-os
-$ virtualenv --python=/usr/bin/python3.5 .env
+$ virtualenv --python=/usr/bin/python3 .env
 $ source .env/bin/activate
-$ pip3 install -r requirements.txt
+$ python3 -m pip3 install -r requirements.txt
 ```
 
 ## Building
