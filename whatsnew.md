@@ -1,3 +1,24 @@
+## All mining hardware types
+
+- [feature] bOS now automatically **detects availability** of a new version. The web UI now contains an indicator of new release availability (+ single click to install)
+- [feature] **firmware upgrade process** is now more smooth when upgrading from **bOS** that is more than **2 releases old**
+- [feature] miner status web page **no longer needs access to port 4028** of the miner, everything is provided via web proxy on the miner
+- [feature] a new script **discover.py** scans the network range and provides information about **bOS devices** as well as **factory firmware devices**
+- [feature] **fancontrol** completely rewritten, all mining hardware now uses the same **PID** controller algorithm. The automated fan control can be overriden and fan speed can be set manually
+- [feature] it is now possible to run **upgrade2bos.py** with **--dry-run** parameter to create system backup and check if the firmware is likely succeed in transitioning to bOS
+- [feature] **miner status page** is now the **default** section after login
+- [feature] transition from factory firmware to bOS can now be supplied with a **post-upgrade script** that runs during the **first boot** of the machine running bOS for the first time. Official documentation provides more details.
+- [feature] **macOS guide** for factory firmware transition added
+- [feature] DHCP client now sends its **system hostname** to its DHCP server = there is a single source of truth with regards to the machine hostname
+
+## Antminer S9
+
+- [feature] upgrade to bOS is now possible for S9's running older firmware that has **4 NAND partitions**
+- [feature] a multiplier allows changing **frequency** of either **per-chip calibration settings from the factory** or of user configured **per hash board base frequency**. Web interace adjusted accordingly. The functionality is also available through the API.
+- [feature] it is now possible to restore the factory firmware **without having a backup** of the original firmware. The configuration is tailored from the running bOS and the restore2factory.py tool can be supplied with a factory firmware image downloaded from manufacturer's website.
+- [feature] firmware now supports the **reset button** used for rebooting the machine. If the push button is held down for more than 5 seconds the machine is also "factory" reset and all bOS settings are erased (Note, that it doesn't switch back to original factory firmware)
+
+
 # 2018-11-27-0
 
 ## Overview - major release; code name: Cobalt
