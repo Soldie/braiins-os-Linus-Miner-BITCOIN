@@ -75,8 +75,8 @@ def main(args):
         ssh.run('mkdir', '-p', TARGET_DIR)
 
         # upgrade remote system with missing utilities
-        if not platform.prepare_system(ssh, SYSTEM_DIR):
-            raise UpgradeStop
+        print("Preparing remote system...")
+        platform.prepare_system(ssh, SYSTEM_DIR)
 
         # copy firmware files to the server over SFTP
         sftp = ssh.open_sftp()
@@ -98,6 +98,10 @@ def main(args):
             stdout, _ = ssh.run('cd', TARGET_DIR, '&&', 'ls', '-l', '&&',
                                 "/bin/sh stage1.sh '{}' {} {}".format(hw_id, keep_network, keep_hostname))
         except subprocess.CalledProcessError as error:
+            print("Cleaning remote system...")
+            platform.cleanup_system(ssh)
+            print()
+            print("Error log:")
             for line in error.stderr.readlines():
                 print(line, end='')
             raise UpgradeStop

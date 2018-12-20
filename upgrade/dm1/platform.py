@@ -30,7 +30,11 @@ def prepare_restore(args):
 
 
 def prepare_system(ssh, path):
-    return True
+    pass
+
+
+def cleanup_system(ssh):
+    pass
 
 
 def add_restore_arguments(parser):

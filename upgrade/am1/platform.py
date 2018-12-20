@@ -46,6 +46,12 @@ SUPPORTED_IMAGES = [
     '7f541a58a4ee559105894c94ff301108'
 ]
 
+SYSTEM_BINARIES = [
+    ('ld-musl-armhf.so.1', '/lib'),
+    ('sftp-server', '/usr/lib/openssh'),
+    ('fw_printenv', '/usr/sbin')
+]
+
 
 class PlatformStop(Exception):
     pass
@@ -169,23 +175,15 @@ def restore_firmware(args, ssh, backup_dir, mtdparts):
 
 
 def prepare_system(ssh, path):
-    binaries = [
-        ('ld-musl-armhf.so.1', '/lib'),
-        ('sftp-server', '/usr/lib/openssh'),
-        ('fw_printenv', '/usr/sbin')
-    ]
-
-    print("Preparing remote system...")
-
-    for file_name, remote_path in binaries:
+    for file_name, remote_path in SYSTEM_BINARIES:
         remote_file_name = '{}/{}'.format(remote_path, file_name)
         try:
             ssh.run('test', '!', '-e', remote_file_name)
         except subprocess.CalledProcessError:
             print("File '{}' exists on remote target already!".format(remote_file_name))
-            return False
+            raise PlatformStop
 
-    for file_name, remote_path in binaries:
+    for file_name, remote_path in SYSTEM_BINARIES:
         ssh.run('mkdir', '-p', remote_path)
         remote_file_name = '{}/{}'.format(remote_path, file_name)
         print('Copy {} to {}'.format(file_name, remote_file_name))
@@ -194,7 +192,14 @@ def prepare_system(ssh, path):
 
     ssh.run('ln', '-fs', '/usr/sbin/fw_printenv', '/usr/sbin/fw_setenv')
     print()
-    return True
+
+
+def cleanup_system(ssh):
+    for file_name, remote_path in SYSTEM_BINARIES:
+        remote_file_name = '{}/{}'.format(remote_path, file_name)
+        ssh.run('rm', '-r', remote_file_name)
+
+    ssh.run('rm', '/usr/sbin/fw_setenv')
 
 
 def add_restore_arguments(parser):
