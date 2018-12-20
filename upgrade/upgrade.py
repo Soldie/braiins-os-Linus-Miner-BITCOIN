@@ -58,6 +58,11 @@ def check_compatibility(ssh):
         pass
 
 
+def cleanup_system(ssh):
+    print("Cleaning remote system...")
+    platform.cleanup_system(ssh)
+
+
 def main(args):
     print("Connecting to remote host...")
     with SSHManager(args.hostname, USERNAME, PASSWORD) as ssh:
@@ -91,21 +96,26 @@ def main(args):
         # get other stage1 parameters
         keep_network = 'no' if args.no_keep_network else 'yes'
         keep_hostname = 'yes' if args.keep_hostname else 'no'
+        dry_run = 'yes' if args.dry_run else 'no'
 
         # run stage1 upgrade process
         try:
             print("Upgrading firmware...")
             stdout, _ = ssh.run('cd', TARGET_DIR, '&&', 'ls', '-l', '&&',
-                                "/bin/sh stage1.sh '{}' {} {}".format(hw_id, keep_network, keep_hostname))
+                                "/bin/sh stage1.sh '{}' {} {} {}".format(hw_id, keep_network, keep_hostname, dry_run))
         except subprocess.CalledProcessError as error:
-            print("Cleaning remote system...")
-            platform.cleanup_system(ssh)
+            cleanup_system(ssh)
             print()
             print("Error log:")
             for line in error.stderr.readlines():
                 print(line, end='')
             raise UpgradeStop
         else:
+            if args.dry_run:
+                cleanup_system(ssh)
+                print('Dry run of upgrade was successful!')
+                raise UpgradeStop
+
             for line in stdout.readlines():
                 print(line, end='')
             print('Upgrade was successful!')
@@ -139,6 +149,8 @@ if __name__ == "__main__":
                         help='keep miner hostname')
     parser.add_argument('--no-wait', action='store_true',
                         help='do not wait until system is fully upgraded')
+    parser.add_argument('--dry-run', action='store_true',
+                        help='do all upgrade steps without actual upgrade')
 
     # parse command line arguments
     args = parser.parse_args(sys.argv[1:])

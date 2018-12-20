@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-if [ "$#" -ne 3 ]; then
+if [ "$#" -ne 4 ]; then
     echo "Illegal number of parameters"
     exit 1
 fi
@@ -27,6 +27,7 @@ set -e
 MINER_HWID="$1"
 KEEP_NET_CONFIG="$2"
 KEEP_HOSTNAME="$3"
+DRY_RUN="$4"
 
 UBOOT_ENV_CFG="uboot_env.config"
 
@@ -55,6 +56,8 @@ sed_variables() {
 
 # prepare configuration file
 sed_variables "$UBOOT_ENV_CFG" UBOOT_ENV_MTD UBOOT_ENV1_OFF UBOOT_ENV2_OFF
+
+[ x"$DRY_RUN" == x"yes" ] && exit 0
 
 flash_eraseall /dev/mtd${UBOOT_MTD} 2>&1
 
