@@ -33,7 +33,21 @@ get_net_config() {
 	sed -n '/'$1'=/s/.*=["]*\([^"]*\)["]*/\1/p' /config/network.conf
 }
 
-mtd_hash_expected=8bc020c6db888c7e8062fbbd4a6fb2a6
+check_mtd_hash() {
+	local hash_expected
+	local hash=$1
+	shift
+	while [ -n "$1" ]; do
+		hash_expected=$1
+		[ "$hash" == "$hash_expected" ] && return 0
+		shift
+	done
+	return 1
+}
+
+mtd_hash_expected="\
+8bc020c6db888c7e8062fbbd4a6fb2a6 \
+dbed76afa7bff618ddea25b0c4ba69a7"
 mtd_hash=$(cat /proc/mtd | md5sum | awk '{print $1}')
 
 ETHADDR=$(cat /sys/class/net/eth0/address)
@@ -57,7 +71,7 @@ BITSTREAM_OFF=0x300000
 UBOOT_MTD=0
 UBOOT_ENV_MTD=0
 
-if [ "x${mtd_hash}" != "x${mtd_hash_expected}" ]; then
+if ! check_mtd_hash $mtd_hash $mtd_hash_expected; then
 	echo "Unsupported miner NAND partitioning" >&2
 	cat /proc/mtd >&2
 	exit 1
