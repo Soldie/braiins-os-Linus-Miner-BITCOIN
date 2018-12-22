@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from .backup import ssh_factory_mtdparts as get_factory_mtdparts
 from .backup import ssh_backup as backup_firmware
 from .backup import ssh_restore as restore_firmware
 
@@ -25,7 +26,11 @@ class PlatformStop(Exception):
 
 
 @contextmanager
-def prepare_restore(args):
+def prepare_restore(args, backup_dir):
+    if not backup_dir:
+        print('Backup cannot be found!')
+        print('Please provide correct path to directory or tarball with previous backup.')
+        raise PlatformStop
     yield
 
 

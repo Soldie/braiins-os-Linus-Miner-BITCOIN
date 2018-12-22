@@ -33,7 +33,6 @@ USERNAME = 'root'
 PASSWORD = None
 
 SYSTEM_DIR = 'system'
-BACKUP_DIR = 'backup'
 SOURCE_DIR = 'firmware'
 TARGET_DIR = '/tmp/firmware'
 
@@ -71,7 +70,7 @@ def main(args):
 
         if not args.no_backup:
             mac = backup.ssh_mac(ssh)
-            backup_dir = backup.get_output_dir(BACKUP_DIR, mac)
+            backup_dir = backup.get_output_dir(mac)
             if not platform.backup_firmware(args, ssh, backup_dir, mac):
                 raise UpgradeStop
 

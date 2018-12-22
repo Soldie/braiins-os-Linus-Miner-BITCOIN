@@ -20,12 +20,14 @@ import hashlib
 import shutil
 import time
 import os
+import io
 
 from urllib.request import Request, urlopen
 from contextlib import contextmanager
-from tempfile import TemporaryFile
+from tempfile import TemporaryDirectory, TemporaryFile
 
-from .backup import ssh_backup, ssh_restore, ssh_restore_reboot
+from .backup import ssh_run, ssh_mac, ssh_factory_mtdparts, ssh_backup, ssh_restore, ssh_restore_reboot
+from .backup import get_stream_size, get_default_hostname
 from .transfer import Progress
 
 CONFIG_TAR = 'config.tar.gz'
@@ -34,6 +36,9 @@ TARGET_DIR = '/tmp/bitmain_fw'
 
 RESTORE_DIR = 'upgrade'
 RESTORE_NAME = 'restore.sh'
+
+FACTORY_MTDPARTS = \
+    'mtdparts=pl35x-nand:32m(BOOT.bin-env-dts-kernel),144m(angstram-rootfs),80m(upgrade-rootfs)'
 
 SUPPORTED_IMAGES = [
     # Antminer-S9-all-201711171757-autofreq-user-Update2UBI-NF.tar.gz
@@ -98,10 +103,14 @@ def md5fo(stream):
 
 
 @contextmanager
-def prepare_restore(args):
+def prepare_restore(args, backup_dir):
     url = args.factory_image
     if not url:
         # factory image is not set and standard NAND restore is used
+        if not backup_dir:
+            print('Backup cannot be found!')
+            print('Please use factory image or provide correct path to directory or tarball with previous backup.')
+            raise PlatformStop
         yield
         return
 
@@ -125,6 +134,13 @@ def prepare_restore(args):
     args.factory_stream.seek(0)
     yield
     args.factory_stream.close()
+
+
+def get_factory_mtdparts(args, ssh, backup_dir):
+    if backup_dir:
+        return ssh_factory_mtdparts(args, ssh, backup_dir)
+    else:
+        return FACTORY_MTDPARTS
 
 
 def restore_bitmain_firmware(args, ssh, backup_dir, mtdparts):
@@ -165,9 +181,63 @@ def restore_bitmain_firmware(args, ssh, backup_dir, mtdparts):
             print(line, end='')
 
 
+def create_bitmain_config(ssh, tmp_dir):
+    bitmain_hostname = 'antMiner'
+    config_dir = 'config'
+
+    # restore original configuration from running miner
+    mac = ssh_mac(ssh)
+
+    config_path = os.path.join(tmp_dir, CONFIG_TAR)
+    tar = tarfile.open(config_path, "w:gz")
+    stream_info = tar.gettarinfo(config_path)
+
+    # create mac file
+    stream = io.BytesIO('{}\n'.format(mac).encode())
+    stream_info.name = '{}/mac'.format(config_dir)
+    stream_info.size = get_stream_size(stream)
+    tar.addfile(stream_info, stream)
+    stream.close()
+
+    # create network.conf file
+    stream = io.BytesIO()
+    net_proto = ssh_run(ssh, 'uci', 'get', 'network.lan.proto')
+    if net_proto == 'dhcp':
+        net_hostname = ssh_run(ssh, 'uci', 'get', 'network.lan.hostname')
+        if net_hostname == get_default_hostname(mac):
+            # do not restore bOS default hostname
+            net_hostname = bitmain_hostname
+        stream.write('hostname={}\n'.format(net_hostname).encode())
+        stream.write('dhcp=true\n'.encode())
+    else:
+        # static protocol
+        net_ipaddr = ssh_run(ssh, 'uci', 'get', 'network.lan.ipaddr')
+        net_mask = ssh_run(ssh, 'uci', 'get', 'network.lan.netmask')
+        net_gateway = ssh_run(ssh, 'uci', 'get', 'network.lan.gateway')
+        net_dns = ssh_run(ssh, 'uci', 'get', 'network.lan.dns')
+        stream.write('hostname={}\n'.format(bitmain_hostname).encode())
+        stream.write('ipaddress={}\n'.format(net_ipaddr).encode())
+        stream.write('netmask={}\n'.format(net_mask).encode())
+        stream.write('gateway={}\n'.format(net_gateway).encode())
+        stream.write('dnsservers="{}"\n'.format(net_dns).encode())
+    stream.seek(0)
+    stream_info.name = '{}/network.conf'.format(config_dir)
+    stream_info.size = get_stream_size(stream)
+    tar.addfile(stream_info, stream)
+    stream.close()
+
+    tar.close()
+
+
 def restore_firmware(args, ssh, backup_dir, mtdparts):
     if args.factory_image:
-        restore_bitmain_firmware(args, ssh, backup_dir, mtdparts)
+        if backup_dir:
+            restore_bitmain_firmware(args, ssh, backup_dir, mtdparts)
+        else:
+            with TemporaryDirectory() as tmp_dir:
+                print("Creating configuration files...")
+                create_bitmain_config(ssh, tmp_dir)
+                restore_bitmain_firmware(args, ssh, tmp_dir, mtdparts)
         ssh_restore_reboot(args, ssh)
     else:
         # use default NAND dump restore
