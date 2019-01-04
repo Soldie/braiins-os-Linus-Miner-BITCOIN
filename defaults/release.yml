@@ -50,6 +50,13 @@ block_mount:
     - libext2fs
     - libuuid
 
+firmware_upgrade:
+  list:
+    - at
+    - libelf1
+    - bos_update
+    - bos_monitor
+
 # image package lists
 image_sd:
   base:
@@ -62,6 +69,7 @@ image_sd:
 image_nand:
   base:
     - core
+    - firmware_upgrade
   list:
     - bos_nand
     - miner_tools
