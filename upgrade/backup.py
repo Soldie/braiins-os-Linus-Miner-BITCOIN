@@ -107,7 +107,7 @@ def ssh_backup(args, ssh, path, mac):
     with ssh.pipe('cat', '/proc/mtd') as remote:
         next(remote.stdout)
         for line in remote.stdout:
-            dev, size, _, name = line.split()
+            dev, size, _, name = line.strip().split(None, 3)
             dev = dev[:-1]
             size = int(size, 16)
             name = name[1:-1]
