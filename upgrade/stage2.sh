@@ -53,18 +53,23 @@ cp "/etc/$FW_ENV_CFG" "/tmp"
 cp "miner_cfg.config" "/etc/$FW_ENV_CFG"
 
 mtd_write miner_cfg.bin miner_cfg
-fw_setenv ethaddr ${ETHADDR}
-
-fw_setenv net_hostname ${NET_HOSTNAME}
-fw_setenv net_ip ${NET_IP}
-fw_setenv net_mask ${NET_MASK}
-fw_setenv net_gateway ${NET_GATEWAY}
-fw_setenv net_dns_servers ${NET_DNS_SERVERS}
-
-fw_setenv miner_hwid ${MINER_HWID}
-fw_setenv miner_freq ${MINER_FREQ}
-fw_setenv miner_voltage ${MINER_VOLTAGE}
-fw_setenv miner_fixed_freq ${MINER_FIXED_FREQ}
+fw_setenv --script - <<-EOF
+	# MAC address
+	ethaddr=${ETHADDR}
+	#
+	# network settings
+	net_hostname=${NET_HOSTNAME}
+	net_ip=${NET_IP}
+	net_mask=${NET_MASK}
+	net_gateway=${NET_GATEWAY}
+	net_dns_servers=${NET_DNS_SERVERS}
+	#
+	# miner settings
+	miner_hwid=${MINER_HWID}
+	miner_freq=${MINER_FREQ}
+	miner_voltage=${MINER_VOLTAGE}
+	miner_fixed_freq=${MINER_FIXED_FREQ}
+EOF
 
 # restore original fw_env.config
 cp "/tmp/$FW_ENV_CFG" "/etc"

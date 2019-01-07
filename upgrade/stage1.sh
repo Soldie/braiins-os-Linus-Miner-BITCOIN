@@ -82,39 +82,43 @@ nandwrite -ps ${SRC_STAGE2_OFF} /dev/mtd${SRC_STAGE2_MTD} "$STAGE2_FIRMWARE" 2>&
 
 echo "U-Boot configuration..."
 
-# bitstream metadata
-fw_setenv -c "$UBOOT_ENV_CFG" bitstream_off ${BITSTREAM_OFF}
-fw_setenv -c "$UBOOT_ENV_CFG" bitstream_size $(file_size "$BITSTREAM_DATA")
-
-# set kernel metadata
-fw_setenv -c "$UBOOT_ENV_CFG" kernel_off ${DST_KERNEL_OFF}
-fw_setenv -c "$UBOOT_ENV_CFG" kernel_size $(file_size "$KERNEL_IMAGE")
-
-# set firmware stage2 metadata
-fw_setenv -c "$UBOOT_ENV_CFG" stage2_off ${DST_STAGE2_OFF}
-fw_setenv -c "$UBOOT_ENV_CFG" stage2_size $(file_size "$STAGE2_FIRMWARE")
-fw_setenv -c "$UBOOT_ENV_CFG" stage2_mtd ${DST_STAGE2_MTD}
-
-fw_setenv -c "$UBOOT_ENV_CFG" ethaddr ${ETHADDR}
+fw_setenv -c "$UBOOT_ENV_CFG" --script - <<-EOF
+	# bitstream metadata
+	bitstream_off ${BITSTREAM_OFF}
+	bitstream_size $(file_size "$BITSTREAM_DATA")
+	#
+	# set kernel metadata
+	kernel_off ${DST_KERNEL_OFF}
+	kernel_size $(file_size "$KERNEL_IMAGE")
+	#
+	# set firmware stage2 metadata
+	stage2_off ${DST_STAGE2_OFF}
+	stage2_size $(file_size "$STAGE2_FIRMWARE")
+	stage2_mtd ${DST_STAGE2_MTD}
+	#
+	ethaddr ${ETHADDR}
+	#
+	# set miner configuration
+	miner_hwid ${MINER_HWID}
+	#
+	# s9 specific configuration
+	miner_freq ${MINER_FREQ}
+	miner_voltage ${MINER_VOLTAGE}
+	miner_fixed_freq ${MINER_FIXED_FREQ}
+EOF
 
 # set network konfiguration
 if [ x"$KEEP_NET_CONFIG" == x"yes" ]; then
-    fw_setenv -c "$UBOOT_ENV_CFG" net_ip ${NET_IP}
-    fw_setenv -c "$UBOOT_ENV_CFG" net_mask ${NET_MASK}
-    fw_setenv -c "$UBOOT_ENV_CFG" net_gateway ${NET_GATEWAY}
-    fw_setenv -c "$UBOOT_ENV_CFG" net_dns_servers ${NET_DNS_SERVERS}
+	fw_setenv -c "$UBOOT_ENV_CFG" --script - <<-EOF
+		net_ip ${NET_IP}
+		net_mask ${NET_MASK}
+		net_gateway ${NET_GATEWAY}
+		net_dns_servers ${NET_DNS_SERVERS}
+	EOF
 fi
 if [ x"$KEEP_HOSTNAME" == x"yes" ]; then
     fw_setenv -c "$UBOOT_ENV_CFG" net_hostname ${NET_HOSTNAME}
 fi
-
-# set miner configuration
-fw_setenv -c "$UBOOT_ENV_CFG" miner_hwid ${MINER_HWID}
-
-# s9 specific configuration
-fw_setenv -c "$UBOOT_ENV_CFG" miner_freq ${MINER_FREQ}
-fw_setenv -c "$UBOOT_ENV_CFG" miner_voltage ${MINER_VOLTAGE}
-fw_setenv -c "$UBOOT_ENV_CFG" miner_fixed_freq ${MINER_FIXED_FREQ}
 
 echo
 echo "Content of U-Boot configuration:"
