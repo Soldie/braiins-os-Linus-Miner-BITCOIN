@@ -37,6 +37,7 @@ UBOOT_ENV_DATA="uboot_env.bin"
 BITSTREAM_DATA="system.bit.gz"
 KERNEL_IMAGE="fit.itb"
 STAGE2_FIRMWARE="stage2.tgz"
+STAGE3_FIRMWARE="stage3.tgz"
 
 sed_variables() {
     local value
@@ -80,6 +81,14 @@ nandwrite -ps ${SRC_KERNEL_OFF} /dev/mtd${SRC_STAGE2_MTD} "$KERNEL_IMAGE" 2>&1
 echo "Writing stage2 tarball..."
 nandwrite -ps ${SRC_STAGE2_OFF} /dev/mtd${SRC_STAGE2_MTD} "$STAGE2_FIRMWARE" 2>&1
 
+if [ -f "$STAGE3_FIRMWARE" ]; then
+	echo "Writing stage3 tarball..."
+	nandwrite -ps ${SRC_STAGE3_OFF} /dev/mtd${SRC_STAGE3_MTD} "$STAGE3_FIRMWARE" 2>&1
+	dst_stage3_off=${DST_STAGE3_OFF}
+	dst_stage3_size=$(file_size "$STAGE3_FIRMWARE")
+	dst_stage3_mtd=${DST_STAGE3_MTD}
+fi
+
 echo "U-Boot configuration..."
 
 fw_setenv -c "$UBOOT_ENV_CFG" --script - <<-EOF
@@ -95,6 +104,11 @@ fw_setenv -c "$UBOOT_ENV_CFG" --script - <<-EOF
 	stage2_off ${DST_STAGE2_OFF}
 	stage2_size $(file_size "$STAGE2_FIRMWARE")
 	stage2_mtd ${DST_STAGE2_MTD}
+	#
+	# set firmware stage3 metadata
+	stage3_off ${dst_stage3_off}
+	stage3_size ${dst_stage3_size}
+	stage3_mtd ${dst_stage3_mtd}
 	#
 	ethaddr ${ETHADDR}
 	#

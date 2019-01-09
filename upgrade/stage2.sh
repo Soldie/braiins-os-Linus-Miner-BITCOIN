@@ -23,8 +23,6 @@ mtd_write() {
 	mtd -e "$2" write "$1" "$2"
 }
 
-FW_ENV_CFG="fw_env.config"
-
 echo "Running stage2 upgrade process..."
 
 ETHADDR=$(fw_printenv -n ethaddr 2> /dev/null)
@@ -32,6 +30,11 @@ MINER_HWID=$(fw_printenv -n miner_hwid 2> /dev/null)
 
 # turn off error checking for auxiliary settings
 set +e
+STAGE3_OFFSET=$(fw_printenv -n stage3_off 2> /dev/null)
+STAGE3_SIZE=$(fw_printenv -n stage3_size 2> /dev/null)
+STAGE3_MTD=/dev/mtd$(fw_printenv -n stage3_mtd 2> /dev/null)
+STAGE3_PATH="/tmp/stage3.tgz"
+
 NET_HOSTNAME=$(fw_printenv -n net_hostname 2> /dev/null)
 NET_IP=$(fw_printenv -n net_ip 2> /dev/null)
 NET_MASK=$(fw_printenv -n net_mask 2> /dev/null)
@@ -48,12 +51,8 @@ mtd -n -p 0x0800000 write factory.bin.gz recovery
 mtd -n -p 0x1400000 write system.bit.gz recovery
 mtd -n -p 0x1500000 write boot.bin.gz recovery
 
-# backup and change original fw_env.config
-cp "/etc/$FW_ENV_CFG" "/tmp"
-cp "miner_cfg.config" "/etc/$FW_ENV_CFG"
-
 mtd_write miner_cfg.bin miner_cfg
-fw_setenv --script - <<-EOF
+fw_setenv -c miner_cfg.config --script - <<-EOF
 	# MAC address
 	ethaddr=${ETHADDR}
 	#
@@ -71,13 +70,23 @@ fw_setenv --script - <<-EOF
 	miner_fixed_freq=${MINER_FIXED_FREQ}
 EOF
 
-# restore original fw_env.config
-cp "/tmp/$FW_ENV_CFG" "/etc"
+
+if [ -n "${STAGE3_SIZE}" ]; then
+	# detected stage3 upgrade tarball
+	nanddump -s ${STAGE3_OFFSET} -l ${STAGE3_SIZE} -f "${STAGE3_PATH}" ${STAGE3_MTD}
+fi
 
 mtd erase uboot_env
 mtd erase fpga1
 mtd erase fpga2
 mtd erase firmware1
 mtd erase firmware2
+
+if [ -n "${STAGE3_SIZE}" ]; then
+	# write size of stage3 tarball to the first block of firmware2 partition
+	printf "0: %.8x" ${STAGE3_SIZE} | xxd -r -g0 | mtd -n write - firmware2
+	# write stage3 upgrade tarball to firmware2 partition after header block
+	mtd -n -p 0x0100000 write "${STAGE3_PATH}" firmware2
+fi
 
 sync

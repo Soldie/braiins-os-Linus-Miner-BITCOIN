@@ -19,7 +19,10 @@
 
 import argparse
 import subprocess
+import tempfile
+import tarfile
 import sys
+import os
 
 import upgrade.hwid as hwid
 import upgrade.platform as platform
@@ -27,7 +30,7 @@ import upgrade.backup as backup
 
 from upgrade.platform import PlatformStop
 from upgrade.ssh import SSHManager, SSHError
-from upgrade.transfer import upload_local_files, wait_for_port
+from upgrade.transfer import upload_local_files, wait_for_port, Progress
 
 USERNAME = 'root'
 PASSWORD = None
@@ -35,6 +38,10 @@ PASSWORD = None
 SYSTEM_DIR = 'system'
 SOURCE_DIR = 'firmware'
 TARGET_DIR = '/tmp/firmware'
+
+STAGE3_DIR = 'upgrade'
+STAGE3_FILE = 'stage3.tgz'
+STAGE3_SCRIPT = 'stage3.sh'
 
 REBOOT_DELAY = (3, 5)
 
@@ -63,6 +70,15 @@ def cleanup_system(ssh):
 
 
 def main(args):
+    stage3_path = args.post_upgrade
+    if stage3_path:
+        if not os.path.isdir(stage3_path):
+            print("Post-upgrade path '{}' is missing or is not a directory!".format(stage3_path))
+            raise UpgradeStop
+        if not os.path.isfile(os.path.join(stage3_path, STAGE3_SCRIPT)):
+            print("Script '{}' is missing in '{}'!".format(STAGE3_SCRIPT, stage3_path))
+            raise UpgradeStop
+
     print("Connecting to remote host...")
     with SSHManager(args.hostname, USERNAME, PASSWORD) as ssh:
         # check compatibility of remote server
@@ -87,6 +103,15 @@ def main(args):
         sftp.chdir(TARGET_DIR)
         print("Uploading firmware...")
         upload_local_files(sftp, SOURCE_DIR)
+        if stage3_path:
+            print("Uploading post-upgrade (stage3)...")
+            with tempfile.TemporaryDirectory() as stage3_dir:
+                stage3_file = os.path.join(stage3_dir, STAGE3_FILE)
+                with tarfile.open(stage3_file, "w:gz") as stage3:
+                    stage3.add(stage3_path, STAGE3_DIR)
+                    stage3.close()
+                    with Progress(STAGE3_FILE, os.path.getsize(stage3_file)) as progress:
+                        sftp.put(stage3_file, STAGE3_FILE, callback=progress)
         sftp.close()
 
         # generate HW identifier for miner
@@ -150,6 +175,8 @@ if __name__ == "__main__":
                         help='do not wait until system is fully upgraded')
     parser.add_argument('--dry-run', action='store_true',
                         help='do all upgrade steps without actual upgrade')
+    parser.add_argument('--post-upgrade', nargs='?',
+                        help='path to directory with stage3.sh script')
 
     # parse command line arguments
     args = parser.parse_args(sys.argv[1:])

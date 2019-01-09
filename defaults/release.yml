@@ -83,3 +83,4 @@ image_recovery:
 image_upgrade:
   list:
     - bos_upgrade
+    - xxd
