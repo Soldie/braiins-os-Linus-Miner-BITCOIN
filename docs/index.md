@@ -328,7 +328,7 @@ You can set the miners password via SSH from a remote host by running the below 
 *Note: bOS does **not** keep a history of the commands executed.*
 
 ```bash
-$ ssh root@[miner-hostname-or-ip] 'echo -e "[newpassword]\n[newpasword]" | passwd'
+$ ssh root@[miner-hostname-or-ip] 'echo -e "[newpassword]\n[newpassword]" | passwd'
 ```
 
 To do this for several hosts in parallel you could use [p-ssh](https://linux.die.net/man/1/pssh).
