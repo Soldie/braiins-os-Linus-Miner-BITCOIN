@@ -29,6 +29,8 @@ import io
 import miner.hash as hash
 import miner.nand as nand
 
+from upgrade.backup import ssh_mode as get_mode
+from upgrade.backup import MODE_SD, MODE_NAND
 from miner.ssh import SSHManager, SSHError
 from tempfile import TemporaryDirectory
 from urllib.request import Request, urlopen
@@ -36,10 +38,6 @@ from glob import glob
 
 USERNAME = 'root'
 PASSWORD = None
-
-MODE_SD = 'sd'
-MODE_NAND = 'nand'
-MODE_RECOVERY = 'recovery'
 
 MINER_CFG_CONFIG = '/tmp/miner_cfg.config'
 
@@ -90,21 +88,6 @@ def mdt_write(ssh, local_path, mtd, name, erase=True, offset=0):
 def mtd_erase(ssh, mtd):
     print("Erasing NAND partition '{}'...".format(mtd))
     ssh.run(['mtd', 'erase', mtd])
-
-
-def get_mode(ssh):
-    try:
-        stdout, _ = ssh.run('cat', '/etc/bos_mode')
-        return next(stdout).strip()
-    except subprocess.CalledProcessError:
-        # fallback for old releases
-        try:
-            ssh.run('test', '-c', '/dev/ubi0')
-        except subprocess.CalledProcessError:
-            # SD or recovery mode (NAND can be fully accessed)
-            return MODE_SD
-        else:
-            return MODE_NAND
 
 
 def get_platform(ssh):

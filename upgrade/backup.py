@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import subprocess
 import datetime
 import shutil
 import os
@@ -90,7 +91,18 @@ def ssh_run(ssh, *args):
 
 
 def ssh_mode(ssh):
-    return ssh_run(ssh, 'cat', '/etc/bos_mode')
+    try:
+        return ssh_run(ssh, 'cat', '/etc/bos_mode')
+    except subprocess.CalledProcessError:
+        # fallback for old releases
+        stdout, _ = ssh.run('mount')
+        for line in stdout:
+            if line.startswith('/dev/ubi0_2 on /overlay'):
+                return MODE_NAND
+            elif line.startswith('/dev/mmcblk0p2 on /overlay'):
+                return MODE_SD
+        else:
+            return MODE_RECOVERY
 
 
 def ssh_mac(ssh):
