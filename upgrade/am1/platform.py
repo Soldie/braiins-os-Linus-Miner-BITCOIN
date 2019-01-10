@@ -41,6 +41,8 @@ FACTORY_MTDPARTS = \
     'mtdparts=pl35x-nand:32m(BOOT.bin-env-dts-kernel),144m(angstram-rootfs),80m(upgrade-rootfs)'
 
 SUPPORTED_IMAGES = [
+    # Antminer-S9-all-201812051512-autofreq-user-Update2UBI-NF.tar.gz
+    '0b9a8134c5c2cae1f7723aad96df4867',
     # Antminer-S9-all-201711171757-autofreq-user-Update2UBI-NF.tar.gz
     '9974dd88b70cdaaa89a4dd55c25d5bc1',
     # Antminer-S9i-all-201811071119-autofreq-user-Update2UBI-NF.tar.gz
