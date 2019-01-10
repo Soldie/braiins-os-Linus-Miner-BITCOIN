@@ -235,6 +235,51 @@ AsicBoost is **turned on by default**. This setting can be changed in:
 
 AsicBoost is **turned on by default** and **cannot be turned off**. The device is incapable of mining efficiently without AsicBoost.
 
+
+## Fan control
+
+Braiins OS supports automatic fan control for both T1 and S9 miners (using [PID controller](https://en.wikipedia.org/wiki/PID_controll)). The fan controller can operate in one of two modes:
+
+- **Automatic Fan Control** - Miner software tries to regulate the fan speed so that miner temperature is approximately at target temperature (which can be configured). Allowed temperature range is 30-90 degree Celsius.
+- **Fixed fan speed** - Fans are kept at a fixed, user-defined speed, no matter the temperature. This is useful if you have your own way of cooling the miner or if the temperature sensors don't work. Allowed fan speed is 0%-100%.
+
+The fan control mode can be inspected in "Miner Stats" page and changed in "Miner Configuration" page.
+
+**Warning**: mis-configuring fans (either turning them off or at low level, or setting target temperature too high) may irreversibly **DAMAGE** your miner.
+
+The default behavior for fan control is to be in "Automatic Fan Control" mode with reasonably set target temperature. The number and type of temperature sensors is different on T1 and S9, but in general the "measured temperature" is maximum of temperatures from all sensors.
+
+### Fan operation
+
+1. On miner start fan is set to 100% no matter the configuration (this is to prevent overheating during initialization)
+2. Once temperature sensors are initialized, fancontrol is enabled. If temperature sensors are not working or they read out temperature of 0, fans are set to full speed.
+3. If current mode is "fixed fan speed", fan is set to given speed.
+4. If current mode is "automatic fan control", the fan is regulated by temperature. For first 2 minutes the minimum fan speed is set to 60% (to wait for miner to warm up), then the minimum speed is 10%.
+5. In case miner temperature is above *HOT temperature*, fans are set to 100% (even in "fixed fan speed" mode).
+6. In case miner temperature is above *Dangerous temperature*, cgminer shuts down (even in "fixed fan speed" mode).
+
+### Default temperature limits
+
+Miner type | Default Target Temperature | *HOT temperature* | *Dangerous temperature*
+--- | --- | --- | ---
+S9 | 75&deg;C | 90&deg;C | 95&deg;C
+T1 | 89&deg;C | 95&deg;C | 105&deg;C
+
+
+### Fan Control configuration in `cgminer.conf`
+
+There are three new configuration statements: `fan-mode` which selects which mode to use, `fan-temp` which sets temperature (in degree Celsius, and is valid only when `fan-mode: "temp"`), and `fan-speed` which sets speed of fan (in percent).
+
+```
+fan-mode: "temp"
+fan-temp: "75"
+```
+
+```
+fan-mode: "speed"
+fan-speed: "90"
+```
+
 ## Migrating from Braiins OS to factory firmware
 
 Restoring the original factory firmware requires issuing the command below. Please, note that the previously created backup needs to be available.
