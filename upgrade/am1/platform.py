@@ -203,7 +203,10 @@ def create_bitmain_config(ssh, tmp_dir):
     stream = io.BytesIO()
     net_proto = ssh_run(ssh, 'uci', 'get', 'network.lan.proto')
     if net_proto == 'dhcp':
-        net_hostname = ssh_run(ssh, 'uci', 'get', 'network.lan.hostname')
+        try:
+            net_hostname = ssh_run(ssh, 'uci', 'get', 'network.lan.hostname')
+        except subprocess.CalledProcessError:
+            net_hostname = ssh_run(ssh, 'cat', '/proc/sys/kernel/hostname')
         if net_hostname == get_default_hostname(mac):
             # do not restore bOS default hostname
             net_hostname = bitmain_hostname

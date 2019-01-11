@@ -157,7 +157,8 @@ class OpenWrtNetInfo(NetworkInfo):
             'static': self.PROTO_STATIC
         }.get(config['proto'])
         if self.proto == self.PROTO_DHCP:
-            self.hostname = config.get('hostname')
+            self.hostname = config.get('hostname') or \
+                            await asyncssh_run(conn, 'cat /proc/sys/kernel/hostname')
         return self
 
 
