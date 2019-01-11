@@ -1431,7 +1431,7 @@ class Builder:
         :param nand_config:
             Modify configuration files/partitions on NAND.
         """
-        hostname = self._config.deploy.ssh.get('hostname', None)
+        hostname = self._config.deploy.ssh.get('hostname', None) or self._config.net.get('hostname', None)
         password = self._config.deploy.ssh.get('password', None)
         username = self._config.deploy.ssh.username
 
