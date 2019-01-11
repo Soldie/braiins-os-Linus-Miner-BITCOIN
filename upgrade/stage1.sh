@@ -18,7 +18,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 if [ "$#" -ne 4 ]; then
-    echo "Illegal number of parameters"
+    echo "Illegal number of parameters" >&2
     exit 1
 fi
 
