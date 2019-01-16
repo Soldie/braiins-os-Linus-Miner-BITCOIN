@@ -8,6 +8,7 @@ core:
     - gdbserver
     - ip6tables
     - iptables
+    - kmod-gpio-button-hotplug
     - kmod-ip6tables
     - kmod-lib-crc-ccitt
     - kmod-nf-conntrack6
@@ -78,6 +79,7 @@ image_nand:
 image_recovery:
   list:
     - bos_recovery
+    - kmod-gpio-button-hotplug
     - miner_tools
 
 image_upgrade:
