@@ -45,6 +45,8 @@ check_mtd_hash() {
 	return 1
 }
 
+default_hostname="antMiner"
+
 mtd_hash_expected="\
 8bc020c6db888c7e8062fbbd4a6fb2a6 \
 dbed76afa7bff618ddea25b0c4ba69a7"
@@ -110,3 +112,8 @@ NET_DNS_SERVERS=$(get_net_config "dnsservers" | tr " " ,)
 MINER_FREQ=$(get_bm_config "bitmain-freq")
 MINER_VOLTAGE=$(get_bm_config "bitmain-voltage")
 MINER_FIXED_FREQ=$(get_bm_config "fixed-freq")
+
+if [ x"$KEEP_HOSTNAME" == x"cond" ]; then
+	# keep hostname only if it has been changed by user
+	[ x"$NET_HOSTNAME" == x"$default_hostname" ] && KEEP_HOSTNAME="no" || KEEP_HOSTNAME="yes"
+fi
