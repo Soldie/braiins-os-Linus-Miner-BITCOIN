@@ -11,17 +11,20 @@
          * [Recovery Mode](#recovery-mode)
          * [Normal Mode](#normal-mode)
          * [Identifying a miner in a farm](#identifying-a-miner-in-a-farm)
+      * [Fan control](#fan-control)
+         * [Fan operation](#fan-operation)
+         * [Default temperature limits](#default-temperature-limits)
+         * [Fan Control configuration in cgminer.conf](#fan-control-configuration-in-cgminerconf)
       * [AsicBoost support](#asicboost-support)
       * [Migrating from Braiins OS to factory firmware](#migrating-from-braiins-os-to-factory-firmware)
       * [Recovering Bricked (unbootable) Devices Using SD Card](#recovering-bricked-unbootable-devices-using-sd-card)
       * [Firmware upgrade](#firmware-upgrade)
-         * [Upgrade via web interface](#upgrade-via-web-interface)
-         * [Upgrade via SSH](#upgrade-via-ssh)
-         * [ Upgrade from Braiins OS preview version](#upgrade-from-braiins-os-preview-version)
+      * [Network miner discovery](#network-miner-discovery)
+      * [Batch migration to Braiins OS](#batch-migration-to-braiins-os)
       * [Setting miner password via SSH](#setting-miner-password-via-ssh)
       * [Reset to initial Braiins OS version](#reset-to-initial-braiins-os-version)
       * [Recovery Mode](#recovery-mode-1)
-
+      * [Cloning the Braiins OS repository](#cloning-the-braiins-os-repository)
 
 # Overview
 
@@ -30,9 +33,9 @@ There are two ways how to test and use Braiins OS:
 
 1. **Boot from SD card** with Braiins OS image, effectively keeping the stock firmware in the built-in flash memory. In case you encounter any issues, you can simply boot the stock firmware from the internal memory. This is a safe way we suggest to start with.
 
-2. **Permanently reflash the stock firmware**, effectively replacing the manufacturer’s firmware completely with Braiins OS. In this method the only way how to go back to the default stock setup is to restore the manufacturer’s firmware from a backup that you create during install.
+2. **Permanently reflash the stock firmware**, effectively replacing the manufacturer’s firmware completely with Braiins OS. In this method, the only way how to go back to the default stock setup is to restore the manufacturer’s firmware from a backup that you create during install.
 
-Due to aforementioned reasons, it is highly recommended to install Braiins OS firmware **only on devices with SD card slots**.
+Due to the aforementioned reasons, it is highly recommended to install Braiins OS firmware **only on devices with SD card slots**.
 
 You will need:
 
@@ -51,11 +54,11 @@ Each release contains a version number that consists of YYYY-MM-DD-P, where:
 | YYYY | 4 digit release year |
 | MM | 2 digit month |
 | DD | 2 digit day number |
-| P | single digit patch level - in case there was a hot fix re-release on the same day |
+| P | single digit patch level - in case there was a hotfix re-release on the same day |
 
 The version number is also encoded in all artifacts that are available for download.
 
-In addition to the above, each major Braiins OS release has a code name (e.g. wolfram, hafnium, etc.).
+In addition to the above, each major Braiins OS release has a code name (e.g. wolfram, cobalt, etc.).
 
 ## Transitional firmwares
 
@@ -69,7 +72,7 @@ The table below outlines correspondence between transitional firmware image arch
 
 # Installing Braiins OS for the First Time (Replacing Factory Firmware with Braiins OS)
 
-The steps describe below need to be done only **the very first time** you are installing Braiins OS on a device. You will be using so called *transitional firmware images* mentioned above for this purpose.
+The steps described below need to be done only **the very first time** you are installing Braiins OS on a device. You will be using so-called *transitional firmware images* mentioned above for this purpose.
 
 ## Initial Steps
 
@@ -112,7 +115,7 @@ The table below explains the use of individual transitional firmware images
 
 ## Phase 1: Creating Bootable SD Card Image (Antminer S9 example)
 
-Insert an empty SD card (with minimum capacity of 32 MB) into your computer and flash the image onto the SD card.
+Insert an empty SD card (with a minimum capacity of 32 MB) into your computer and flash the image onto the SD card.
 
 ### Using software with GUI (Windows, Linux)
 
@@ -148,7 +151,9 @@ If you know the MAC address of your device, mount the SD card and adjust the MAC
 Once the SD card works, it is very safe to attempt flashing the built-in flash memory as there will always be a way to recover the factory firmware.
 Follow the steps below. The tool creates a backup of the original firmware in the ```backup``` folder. It is important to **keep the backup safe** to resolve any potential future issues.
 
-Below are commands to replace original factory firmware with Braiins OS using the SSH variant. The tool attempts to login to the machine via SSH, therefore you maybe prompted for a password.
+*Note: You have to have Python 3 installed to migrate to Braiins OS and run all the `*.py` scripts. [Follow this guide to install Python 3.](python-install)*
+
+Below are commands to replace original factory firmware with Braiins OS using the SSH variant. The tool attempts to login to the machine via SSH, therefore you may be prompted for a password.
 
 ### Using Linux
 
@@ -161,9 +166,22 @@ python3 -m pip install -r requirements.txt
 python3 upgrade2bos.py your-miner-hostname-or-ip
 ```
 
-### Using Windows
+### Using macOS
 
-Please install Python first [following this guide](python-win). Then proceed to run the following commands consecutively:
+```bash
+cd braiins-os_am1-s9_ssh_VERSION
+
+# create environment
+# replace xxx with the decimal version of the installed Python
+virtualenv .venv3 -p /Library/Frameworks/Python.framework/Versions/3.xxx/bin/python3.xxx
+
+. venv3/bin/activate
+pip install -r requirements.txt
+
+python3 upgrade2bos.py your-miner-hostname-or-ip
+```
+
+### Using Windows
 
 ```bash
 cd braiins-os_am1-s9_ssh_VERSION
@@ -181,12 +199,46 @@ python upgrade2bos.py your-miner-hostname-or-ip
 deactivate
 ```
 
+### Adding a post-upgrade script
+
+There is an option `--post-upgrade` to run a custom post upgrade script.
+
+```
+python3 upgrade2bos.py your-miner-hostname-or-ip --post-upgrade path-to-directory-with-script
+```
+
+The directory with post-upgrade script must contain stage3.sh which is run after miner successful upgrade. This directory can contain other files which can be accessed from the stage3.sh in the scope of the current directory when the script is run.
+
+#### Example script (change default login)
+
+The content of `stage3.sh`:
+
+```
+#!/bin/sh
+
+# set new password for web interface
+echo -e "[newpassword]\n[newpassword]" | passwd
+
+# disable SSH password authentication
+uci set dropbear.@dropbear[0].PasswordAuth='off'
+uci set dropbear.@dropbear[0].RootPasswordAuth='off'
+uci commit dropbear
+
+# copy SSH authorized keys for password-less login
+cp ./authorized_keys /etc/dropbear/
+```
+
+The content of `authorized_keys` is in a standard format specified by Dropbear or OpenSSH server. The keys can be obtained from the local machine:
+
+```
+cp ~/.ssh/id_rsa.pub >> ./authorized_keys
+```
+
 # Basic user's guide
 
 ## Miner Signalization (LED)
 
 Miner LED signalization depends on its operational mode. There are two modes (*recovery* and *normal*) which are signaled by the **green** and **red LED** on the front panel. The LED on the control board (inside) always shows *heartbeat* (flashes at a load average based rate).
-
 
 ### Recovery Mode
 
@@ -218,24 +270,6 @@ Similarly to disable the LED run:
 $ miner fault_light off
 ```
 
-## AsicBoost support
-
-Braiins OS supports overt (version-rolling) AsicBoost in accordance with [BIP310](https://github.com/bitcoin/bips/blob/master/bip-0310.mediawiki).
-
-Trying to use AsicBoost on pool that is not supporting it will result in error message (device will not start mining at all). Please note there is no automatic detection present at the moment, meaning AsicBoost can be only turned on/off manually.
-
-### Antminer S9
-
-AsicBoost is **turned on by default**. This setting can be changed in:
-
-- web interface Services > CGMiner menu
-- config file ```/etc/cgminer.conf``` by altering the ```multi-version``` value to `1` (disabled) or `4` (enabled)
-
-### DragonMint T1
-
-AsicBoost is **turned on by default** and **cannot be turned off**. The device is incapable of mining efficiently without AsicBoost.
-
-
 ## Fan control
 
 Braiins OS supports automatic fan control for both T1 and S9 miners (using [PID controller](https://en.wikipedia.org/wiki/PID_controll)). The fan controller can operate in one of two modes:
@@ -253,8 +287,8 @@ The default behavior for fan control is to be in "Automatic Fan Control" mode wi
 
 1. On miner start fan is set to 100% no matter the configuration (this is to prevent overheating during initialization)
 2. Once temperature sensors are initialized, fancontrol is enabled. If temperature sensors are not working or they read out temperature of 0, fans are set to full speed.
-3. If current mode is "fixed fan speed", fan is set to given speed.
-4. If current mode is "automatic fan control", the fan is regulated by temperature. For first 2 minutes the minimum fan speed is set to 60% (to wait for miner to warm up), then the minimum speed is 10%.
+3. If the current mode is "fixed fan speed", fan is set to given speed.
+4. If the current mode is "automatic fan control", the fan is regulated by temperature. For the first 2 minutes the minimum fan speed is set to 60% (to wait for the miner to warm up), then the minimum speed is 10%.
 5. In case miner temperature is above *HOT temperature*, fans are set to 100% (even in "fixed fan speed" mode).
 6. In case miner temperature is above *Dangerous temperature*, cgminer shuts down (even in "fixed fan speed" mode).
 
@@ -280,6 +314,23 @@ fan-mode: "speed"
 fan-speed: "90"
 ```
 
+## AsicBoost support
+
+Braiins OS supports overt (version-rolling) AsicBoost in accordance with [BIP310](https://github.com/bitcoin/bips/blob/master/bip-0310.mediawiki).
+
+Trying to use AsicBoost on a pool that is not supporting it will result in an error message (the device will not start mining at all). Please note there is no automatic detection present at the moment, meaning AsicBoost can be only turned on/off manually.
+
+### Antminer S9
+
+AsicBoost is **turned on by default**. This setting can be changed in:
+
+- web interface Services > CGMiner menu
+- config file ```/etc/cgminer.conf``` by altering the ```multi-version``` value to `1` (disabled) or `4` (enabled)
+
+### DragonMint T1
+
+AsicBoost is **turned on by default** and **can not be turned off**. The device is incapable of mining efficiently without AsicBoost.
+
 ## Migrating from Braiins OS to factory firmware
 
 Restoring the original factory firmware requires issuing the command below. Please, note that the previously created backup needs to be available.
@@ -301,11 +352,11 @@ cd braiins-os_am1-s9_ssh_VERSION
 python3 restore2factory.py backup/2ce9c4aab53c-2018-09-19/ your-miner-hostname-or-ip
 ```
 
-After the script finishes, wait a few minutes and adjust jumper to boot from NAND (internal memory) afterwards.
+After the script finishes, wait a few minutes and adjust jumper to boot from NAND (internal memory) afterward.
 
 ## Firmware upgrade
 
-Firmware upgrade process uses standard mechanism for installing/upgrading software packages within any OpenWrt based system. Follow the steps below to perform firmware upgrade.
+Firmware upgrade process uses standard mechanism for installing/upgrading software packages within any OpenWrt based system. Follow the steps below to perform the firmware upgrade.
 
 ### Upgrade via web interface
 
@@ -321,7 +372,7 @@ $ opkg update
 $ opkg install firmware
 ```
 
-Since the firmware installation results in reboot, the following output is expected:
+Since the firmware installation results in a reboot, the following output is expected:
 
 ```
 root@MINER:~# opkg install firmware
@@ -348,27 +399,78 @@ Connection to 10.33.0.166 closed.
 
 ### Upgrade from Braiins OS preview version
 
-The script *bos2bos.ps* is provided to upgrade from one of the Braiins OS preview versions and expects two parameters. The 1st parameter is a URL to the **Braiins OS** firmware to use for the transition from our feeds server and matching your platform. Please see the [table](#transitional-firmwares) at the top of this document. The 2nd parameter is the miner's hostname or IP. There is an optional 3rd named parameter *--mac* which allowes you to provide a new MAC-address which the miner will thenb have after the upgrade.
+The script *bos2bos.py* (available in the repository, [clone it first](#cloning-the-braiins-os-repository)) is provided to upgrade from one of the Braiins OS preview versions and expects two parameters: URL to the transitional firmware (please refer to this [table](#transitional-firmwares)) and hostname or IP of the miner. You can also set up a new MAC address using the option `--mac`.
 
 Follow the below steps to upgrade/transition from the Braiins OS preview.
 
-*Note: As this script is not inclued in the releases you will need to clone the repository.*
+```bash
+python3 bos2bos.py transitional-firmware-url your-miner-hostname-or-ip
+```
+
+If you wish to upload configuration using a yml file, use the `--config` option.
 
 ```bash
-# clone repository
-git clone https://github.com/braiins/braiins-os.git
-
-cd braiins-os
-virtualenv --python=/usr/bin/python3 .env
-source .env/bin/activate
-python3 -m pip install -r requirements.txt
-
-python3 bos2bos.py url-to-transitional-firmware your-miner-hostname-or-ip
+python3 bos2bos.py --config miner_cfg.yml transitional-firmware-url your-miner-hostname-or-ip
 ```
+
+Here is a `miner_cfg.yml` config template you can modify according to your needs:
+
+```
+miner:
+  # miner HW identifier
+  hwid: Q50QDhdWuWq9yDr5
+  # default miner pool
+  pool:
+    host: stratum+tcp://stratum.slushpool.com
+    port: 3333
+    user: '!non-existent-user!'
+    pass: x
+  # HW specific settings
+  hw:
+    freq: 550
+    fixed_freq: true
+
+net:
+  # default miner MAC address
+  mac: 00:0A:35:FF:FF:FF
+  # static IP settings
+  ip: 10.33.0.2
+  mask: 255.255.255.0
+  gateway: 10.33.0.1
+  dns_servers:
+  - 10.33.0.1
+  # miner hostname when DHCP is used (static IP is not set)
+  hostname: bos-miner
+```
+
+## Network miner discovery
+
+The script *discover.py* (available in the repository, [clone it first](#cloning-the-braiins-os-repository)) is to be used to discover supported mining devices in the local network. For each device, the output includes MAC address, IP address, system info, hostname, and a mining username configured.
+
+The parameter is expected to include a list of IP addresses or IP subnetwork with a mask (example below) to scan a whole subnetwork.
+
+```bash
+python3 discover.py 10.55.0.0/24
+
+50:6c:be:08:52:e5 (10.55.0.117) | bOS dm1-g19_2018-11-27-0-c34516b0 [nand] {511524 KiB RAM} dhcp(miner-w1) @userName.worker1
+00:6c:aa:23:52:e1 (10.55.0.102) | DragonMint T1 G19 {250564 KiB RAM} dhcp(dragonMint) @userName.worker2
+00:7e:92:77:a0:ca (10.55.0.133) | bOS am1-s9_2018-11-27-0-c34516b0 [nand] {1015120 KiB RAM} dhcp(miner-w3) @userName.worker3
+00:94:cb:12:a0:ce (10.55.0.145) | Antminer S9 Fri Nov 17 17:57:49 CST 2017 (S9_V2.55) {1015424 KiB RAM} dhcp(antMiner) @userName.worker5
+```
+
+## Batch migration to Braiins OS
+
+You can use simple bash scripts to install Braiins OS on a larger number of devices in sequence. For example, the following snippet will install selected transitional image to all supported devices in the local network and print out their IP addresses.
+
+```
+IP_PREFIX=192.168.0; for i in `seq 1 150`; do ip=${IP_PREFIX}.$i; python3 ./upgrade2bos.py $ip || {echo Last IP processed: $ip}; done
+```
+
+For batch migration, you may also consider disabling backups with the `--no-nand-backup` option to speed up the process and save storage space. If you use this option, only config files will be backed up from each device.
 
 ## Setting miner password via SSH
 
-You can set the miners password via SSH from a remote host by running the below command and replaceing *[newpassword]* with your own password.
+You can set the miners password via SSH from a remote host by running the below command and replacing *[newpassword]* with your own password.
 
 *Note: bOS does **not** keep a history of the commands executed.*
 
@@ -396,8 +498,24 @@ In addition to the above, reset to initial Braiins OS version can also be initia
 
 Users doesn't have to typically enter recovery mode while using Braiins OS in a standard way. The ```bos2factory.py``` downgrade process uses it to restore the original factory firmware from the manufacturer. It can also be useful when repairing/investigating the currently installed system.
 
-The recovery mode can be invoked by different ways:
+The recovery mode can be invoked in different ways:
 
 * *IP SET button* - hold it for *3s* until green LED flashes
 * *SD card* - first partition with FAT contains file *uEnv.txt* with a line **recovery=yes**
 * *miner utility* - call ```miner run_recovery``` from the miner's command line
+
+## Cloning the Braiins OS repository
+
+Some Python tools/scripts are not included in the releases so you will need to clone the repository and set up the environment (if not already) to use them.
+
+```bash
+# clone repository
+git clone https://github.com/braiins/braiins-os.git
+
+cd braiins-os
+virtualenv --python=/usr/bin/python3 .env
+source .env/bin/activate
+python3 -m pip install -r requirements.txt
+```
+
+*If you want to build Braiins OS yourself or modify the code, see the complete [developer guide](https://github.com/braiins/braiins-os).*
