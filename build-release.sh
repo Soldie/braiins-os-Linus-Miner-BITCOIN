@@ -29,7 +29,6 @@ release_subtargets=$@
 #DRY_RUN=echo
 STAGE1=y
 CLONE=n
-VENV=.pybuildenv
 
 echo ID is: `id`
 echo KEY is: $key
@@ -45,12 +44,7 @@ if [ $CLONE = y ]; then
     $DRY_RUN cd braiins-os
 fi
 
-rm -rf $VENV
-
-$DRY_RUN virtualenv --python=/usr/bin/python3.5 $VENV
-$DRY_RUN source $VENV/bin/activate
-$DRY_RUN pip3 install -r requirements.txt
-
+. prepare-env.sh
 
 function generate_sd_img() {
     src_dir=$1

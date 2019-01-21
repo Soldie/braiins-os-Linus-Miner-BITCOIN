@@ -1,5 +1,21 @@
 #!/bin/bash
 
-release_build_dir=/src
-docker run --env RELEASE_BUILD_DIR=$release_build_dir --env LOC_UID=`id -u` --env LOC_GID=`id -g` --volume $HOME/.ssh/known_hosts:$release_build_dir/.ssh/known_hosts:ro --volume $SSH_AUTH_SOCK:/ssh-agent --volume\
-       ${PWD}:/src -w /src --env SSH_AUTH_SOCK=/ssh-agent -ti braiins-os-builder docker/build-release-as-local-uid.sh $@
+set -e
+
+RELEASE_BUILD_DIR=/src
+DOCKER_SSH_AUTH_SOCK=/ssh-agent
+USER_NAME=build
+
+if [ $# -eq 0 ]; then
+    echo "Warning: Missing build release parameters!"
+    echo "Running only braiins OS build environment..."
+else
+    ARGS="./build-release.sh $@"
+fi
+
+docker run -it --rm \
+    -v $HOME/.ssh/known_hosts:/home/$USER_NAME/.ssh/known_hosts:ro \
+    -v $SSH_AUTH_SOCK:$DOCKER_SSH_AUTH_SOCK -e SSH_AUTH_SOCK=$DOCKER_SSH_AUTH_SOCK \
+    -v $PWD:$RELEASE_BUILD_DIR -w $RELEASE_BUILD_DIR \
+    -e RELEASE_BUILD_DIR=$RELEASE_BUILD_DIR \
+    $USER/bos-builder $ARGS

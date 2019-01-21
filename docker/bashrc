@@ -1,0 +1,5 @@
+if ! md5sum --status -c ~/requirements.md5; then
+    echo "Python requirements has changed!"
+    echo "Please rebuild the docker image to continue."
+    exit 1
+fi
