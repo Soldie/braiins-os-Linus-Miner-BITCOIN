@@ -31,9 +31,9 @@ NET_GATEWAY = 'net_gateway'
 NET_DNS_SERVERS = 'net_dns_servers'
 NET_HOSTNAME = 'net_hostname'
 
-HW_FREQ = 'freq'
-HW_VOLTAGE = 'voltage'
-HW_FIXED_FREQ = 'fixed_freq'
+HW_FREQ = 'miner_freq'
+HW_VOLTAGE = 'miner_voltage'
+HW_FIXED_FREQ = 'miner_fixed_freq'
 
 MINER_HWID = 'miner_hwid'
 MINER_POOL_HOST = 'miner_pool_host'
