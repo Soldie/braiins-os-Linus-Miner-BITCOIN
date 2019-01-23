@@ -45,8 +45,12 @@ SUPPORTED_IMAGES = [
     '0b9a8134c5c2cae1f7723aad96df4867',
     # Antminer-S9-all-201711171757-autofreq-user-Update2UBI-NF.tar.gz
     '9974dd88b70cdaaa89a4dd55c25d5bc1',
+    # Antminer-S9i-xilinx-201811301418-autofreq-user-Update2UBI-NF.tar.gz
+    'fb2a59f0bbfabc1d287fbd6eec9bff98',
     # Antminer-S9i-all-201811071119-autofreq-user-Update2UBI-NF.tar.gz
     '5b07bd845685d81c092a3b0465f24ef1',
+    # Antminer-S9j-xilinx-201811301411-autofreq-user-Update2UBI-NF.tar.gz
+    '95598a094dbc52bd8227cb049f73376e',
     # Antminer-S9j-all-201811071118-autofreq-user-Update2UBI-NF.tar.gz
     '5ab21bac208a1ce18defabe615e2e197',
     # Antminer-R4-all-201704280718-autofreq-user-Update2UBI-NF.tar.gz
