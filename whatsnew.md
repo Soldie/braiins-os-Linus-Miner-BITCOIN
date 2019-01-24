@@ -1,3 +1,5 @@
+# 2019-01-24-0
+
 ## All mining hardware types
 
 - [feature] bOS now automatically **detects availability** of a new version. The web UI now contains an indicator of new release availability (+ single click to install)
