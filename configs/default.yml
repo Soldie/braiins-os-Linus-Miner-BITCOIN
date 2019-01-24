@@ -57,34 +57,33 @@ build:
   #   supported components - command, spl, uboot, fpga
   sysupgrade:
     zynq-dm1-g9:
-      require: '2018-09-22-0-c169f7bc'
+      require: 2018-09-22-0-c169f7bc
     zynq-dm1-g19:
-      require: '2018-09-22-0-2a866bfc'
+      require: 2018-09-22-0-2a866bfc
     zynq-dm1:
       major: no
       include: [command]
     zynq-am1:
       major: no
-      require: '2018-10-24-0-9e5687a2'
+      require: 2018-10-24-0-9e5687a2
       include: [command]
 
 remote:
   # default configuration for fetching latest repository
   fetch: no
   # always fetch each repositories (it cannot be overridden)
-  fetch_always: no
+  fetch_always: yes
   # location aliases for remote repositories
   aliases:
     bos: '{meta_repo}'
     openwrt_feed: git://git.openwrt.org/feed
   # default location for remote repositories
   location: bos
-  # default branch for repositories
-  branch: '{meta_branch}'
   # list of remote repositories
   repos:
     lede:
       project: lede.git
+      branch: 2623a89e4df825d8a41d98ed5bc42a944c2803b3
     lede-packages:
       location: openwrt_feed
       project: packages.git
@@ -99,22 +98,29 @@ remote:
       branch: ac6415e61f147a6892fd2785337aec93ddc68fa9
     luci:
       project: luci.git
+      branch: 46b8e44c463768b49be71ecec2527d5c54cff2b5
     miner-feeds:
       project: braiins-os-feeds.git
+      branch: beee0a591338af8a7f15251cc877b89788ef1979
     platform:
       match:
         zynq:
           project: zynq-io-bin.git
+          branch: 57a16d7f69f997ce449eebff2cdd1a050d97ef62
     u-boot:
       project: u-boot-xlnx.git
+      branch: 1b07706512b61a32f1a0bfeaa252882e131fdd43
     linux:
       project: linux-xlnx.git
+      branch: 963c0c2de05048d7b6dccda8fcc85b95b2b28567
     cgminer:
       match:
         zynq-dm1:
           project: cgminer.git
+          branch: d57b4652107eeb3c811001459d44b5fc58cb59f1
         zynq-am1:
           project: bmminer.git
+          branch: 87bf551a1d257645561512c25dc60053477e287f
     # it is possible to continue with any user repositories
 
 local:
